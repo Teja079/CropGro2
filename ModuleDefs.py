@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from typing import List
 
 # Global constants
-NL : int = 10         # Maximum number of soil layers
+NL : int = 20         # Maximum number of soil layers
 TS : int = 24         # Number of hourly time steps per day
 NAPPL : int = 9000    # Maximum number of applications or operations
 NCOHORTS: int = 300   # Maximum number of cohorts

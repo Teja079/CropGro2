@@ -2008,84 +2008,74 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 # !!  SDEP(L) - soil depth associated with each hard pan factor
 # !!=======================================================================
 #
-# !=======================================================================
-# !   SoilLayerText, Subroutine
-# !-----------------------------------------------------------------------
-# !     Labels for soil layer depth info
-# !-----------------------------------------------------------------------
-# !  REVISION HISTORY
-# !  11/17/2008
-# !-----------------------------------------------------------------------
-# !  Called by: SoilDYN, CellInit_2D
-# !  Calls    :
-# !=======================================================================
+#=======================================================================
+#   SoilLayerText, Subroutine
+#-----------------------------------------------------------------------
+#     Labels for soil layer depth info
+#=======================================================================
 def SoilLayerText(DS, NLAYR):
-     &    LayerText)                             !Output
-#
+    from ModuleDefs import NL
+    import numpy as np
+    import fortranformat as ff
+    from UTILS import NINT
 #       USE ModuleDefs
 #       INTEGER NLAYR, L
 #       REAL, DIMENSION(NL) :: DS
 #       CHARACTER*8 LayerText(11)
 #       INTEGER, DIMENSION(NL) :: ZB, ZT
 #       CHARACTER*14 FMT
-#
-#       !Establish soil layer depths for headers
-#       !Text describing soil layer depth data
-#       !1-9 describe depths for layers 1-9
-#       !10 depths for layers 10 thru NLAYR (if NLAYR > 9)
-#       !11 depths for layers 5 thru NLAYR (if NLAYR > 4)
-#       LayerText = '        '
-#       ZT = -99
-#       ZB = -99
-#
-#       DO L = 1, 11
-#         SELECT CASE(L)
+#     DS = np.zeros(NL, dtype=float)
+    ZB = np.zeros(NL, dtype=int)
+    ZT = np.zeros(NL, dtype=int)
+#!Establish soil layer depths for headers
+#!Text describing soil layer depth data
+#!1-9 describe depths for layers 1-9
+#!10 depths for layers 10 thru NLAYR (if NLAYR > 9)
+#!11 depths for layers 5 thru NLAYR (if NLAYR > 4)
+    LayerText =np.empty(12,'U8')
+    ZB = [-99] * NL
+    ZT = [-99] * NL
+    for L in range(1, 12):  # 1 to 11 inclusive
+        if L == 1:
 # !       For layers 1-10, write depths to label, "LayerText"
-#         CASE (1)
-#           ZT(1) = 0
-#           ZB(1) = NINT(DS(1))
-#         CASE (2:9)
-#           IF (L <= NLAYR) THEN
-#             ZT(L) = ZB(L-1)
-#             ZB(L) = NINT(DS(L))
-#           ENDIF
-#         CASE(10)
+            ZT[1] = 0
+            ZB[1] = NINT(DS[1])
+        elif 2 <= L <= 9:
+            if L <= NLAYR:
+                ZT[L] = ZB[L - 1]
+                ZB[L] = NINT(DS[L])
+        elif L == 10:
 # !         Label 10 includes layers 10 thru NLAYR
-#           IF (NLAYR > 9) THEN
-#             ZT(L) = ZB(L-1)
-#             ZB(L) = DS(NLAYR)
-#           ENDIF
-#         CASE(11)
-#           IF (NLAYR > 4) THEN
+            if NLAYR > 9:
+                ZT[L] = ZB[L-1]
+                ZB[L] = DS[NLAYR]
+        elif L == 11:
+            if NLAYR > 4:
 # !           Label 11 includes layers 5 thru NLAYR
-#             ZT(11) = ZB(4)
-#             ZB(11) = DS(NLAYR)
-#           ENDIF
-#         END SELECT
+                ZT[11] = ZB[4]
+                ZB[11] = DS[NLAYR]
 #
 # !       Format dependant on # digits
-#         IF (ZB(L) > 0) THEN
-#           SELECT CASE (ZT(L))
-#           CASE (:9)
-#             SELECT CASE (ZB(L))
-#             CASE(:9);    FMT = '(5X,I1,"-",I1)'
-#             CASE(10:99); FMT = '(4X,I1,"-",I2)'
-#             CASE(100:);  FMT = '(3X,I1,"-",I3)'
-#             END SELECT
-#           CASE (10:99)
-#             SELECT CASE (ZB(L))
-#             CASE(10:99); FMT = '(3X,I2,"-",I2)'
-#             CASE(100:);  FMT = '(2X,I2,"-",I3)'
-#             END SELECT
-#           CASE (100:);   FMT = '(1X,I3,"-",I3)'
-#           END SELECT
-#           WRITE(LayerText(L),FMT) ZT(L), ZB(L)
-#         ENDIF
-#       ENDDO
-#
-#       RETURN
-#       END SUBROUTINE SoilLayerText
-#=======================================================================
+        if ZB[L] > 0:
+            if ZT[L] <= 9:
+                if ZB[L] <= 9:
+                    fmt = ff.FortranRecordWriter('5X,I1,"-",I1')
+                elif 10 <= ZB[L] <= 99:
+                    fmt = ff.FortranRecordWriter('4X,I1,"-",I2')
+                elif ZB[L]>100:
+                    fmt = ff.FortranRecordWriter('3X,I1,"-",I3')
+            elif 10 <= ZT[L] <= 99:
+                if 10 <= ZB[L] <= 99:
+                    fmt = ff.FortranRecordWriter('3X,I2,"-",I2')
+                else:
+                    fmt = ff.FortranRecordWriter('2X,I2,"-",I3')
+            else:
+                fmt = ff.FortranRecordWriter('1X,I3,"-",I3')
+            LayerText[L] = fmt.write([ZT[L], ZB[L]])
+
+    return LayerText
+
+# C=======================================================================
 #
 #=======================================================================
 #   SoilLayerClass, Subroutine
@@ -2313,3 +2303,9 @@ def SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON):
 # TAXON  = 'Hyperthermic uncoated'
 # CaCO3, PH, CEC, CLAY, SOILLAYERTYPE = SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON)
 # print(SOILLAYERTYPE)
+
+# Test driver for SoilLayerText
+# DS=[0,5,15,30,45,60,90,120,150,180,0]
+# NLAYR=9
+# Layertext = SoilLayerText(DS, NLAYR)
+# print(Layertext[1:])
