@@ -2,6 +2,9 @@
 #  SOILDYN, Subroutine
 #  Soil dynamics routine computes and distributes soil parameters.
 #=======================================================================
+import numpy as np
+
+
 def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
             WEATHER, XHLAI):
 # C-----------------------------------------------------------------------
@@ -9,7 +12,10 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #       USE ModuleData
     from ERROR import ERROR
     from READS import FIND, IGNORE
-    from ModuleDefs import RunConstants as RC, NL
+    from ModuleDefs import RunConstants as RC, NL, SOILPROP, PUT_SOILPROP
+    from WARNING import WARNING
+    from UTILS import NINT
+    from COMSWI import SWITCH as sw
     import fortranformat as ff
     import numpy as np
 
@@ -33,9 +39,10 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #       SAVE
 #
 #       LOGICAL NOTEXTURE, PHFLAG, FIRST, NO_OC
+    FIRST : bool = False
 #       CHARACTER*1 ISWTIL, ISWWAT, MEINF, MESOM, RNMODE
 #       CHARACTER*6 SECTION
-#       CHARACTER*7, PARAMETER :: ERRKEY = 'SOILDYN'
+    ERRKEY = 'SOILDYN'
 #       CHARACTER*30 FILEIO
 #       CHARACTER*78 MSG(NL+10)
     MSG = [''] * 30
@@ -48,18 +55,31 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #       CHARACTER*5 SLTXS, SMPX
 #       CHARACTER*10 SLNO
 #       CHARACTER*11 SLSOUR
-#       CHARACTER*12 TEXTURE(NL)
+    TEXTURE = np.empty(NL, dtype='U12')
 #       CHARACTER*17 SOILLAYERTYPE(NL)
 #       CHARACTER*50 SLDESC, TAXON
-#       INTEGER NLAYR
+    NLAYR : int = 0
 #       REAL CN, DMOD, KTRANS, SALB, SLDP, SLPF, SWCON, TEMP, TOTAW, U
 #       REAL SWAD, SWnew
-#       REAL, DIMENSION(NL) :: ADCOEF, BD, CEC, CLAY, DLAYR, DS, DUL
-#       REAL, DIMENSION(NL) :: KG2PPM, LL, OC, PH, POROS, SAND, SAT, SILT
+#       REAL, DIMENSION(NL) :: ADCOEF,  CEC, CLAY, DUL
+
+    DS = np.zeros(NL, dtype=float)
+    BD = np.zeros(NL, dtype=float)
+    DLAYR = np.zeros(NL, dtype=float)
+
+    LL = np.zeros(NL, dtype=float)
+    OC = np.zeros(NL, dtype=float)
+    PH = np.zeros(NL, dtype=float)
+    SAND = np.zeros(NL, dtype=float)
+    SAT = np.zeros(NL, dtype=float)
+    SILT = np.zeros(NL, dtype=float)
+
+    KG2PPM = np.zeros(NL, dtype=float)
+    POROS = np.zeros(NL, dtype=float)
 #       REAL, DIMENSION(NL) :: SW, SWCN, TOTN, TotOrgN, WR
     WCR = np.zeros(NL, dtype=float)
 # !     REAL, DIMENSION(NL) :: RGIMPF
-#       LOGICAL, DIMENSION(NL) :: COARSE
+    COARSE = np.bool(NL)
 #
 # !     Initial conditions (used to calculate TotOrgN from TOTN)
     NO3 = np.zeros(NL, dtype=float)
@@ -120,36 +140,55 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #
 # !     ---------------------------------------------------------------
 # !     Soil dynamics variables
-#       INTEGER NTIL, TILDATE, NMSG
+#       INTEGER TILDATE, NMSG
+    NTIL : int = 0
 #       REAL AS, CRAIN, CUMDEP   !, FF, CANCOV
-#       REAL LCRAIN, MCUMDEP, MIXPCT, MULCHALB, MULCHCOVER
+#       REAL LCRAIN, MCUMDEP, MIXPCT, MULCHALB
+    MULCHCOVER : float = -99.0
 #       REAL RAIN, RSTL, SOILCOV, SRATE
 #       REAL SUMKE, SUMKEL, SUMKET, TDEP, TIL_IRR, XHLAI
+    TIL_IRR : float = -99.0
 #       REAL CN_TILLED
 #       REAL, DIMENSION(NL) :: CLAY_PREMIX, CLAY_MIX, SAND_PREMIX
 #       REAL, DIMENSION(NL) :: SAND_MIX, SILT_PREMIX, SILT_MIX
 #       REAL, DIMENSION(NL) :: BD_TILLED, DL_TILLED, DS_TILLED
 #       REAL, DIMENSION(NL) :: SAT_TILLED, SC_TILLED
 # !     REAL, DIMENSION(NL) :: RG_TILLED, RGIF_INIT
-#       LOGICAL TILLED
+    TILLED : bool = False
 #
 # !     Keep initial values of soil properties -- these are the "baseline"
 # !     values for comparison with effects of tillage and organic C content.
-#       REAL CN_INIT
-#       REAL, DIMENSION(NL) :: BD_INIT, DLAYR_INIT, DS_INIT, DUL_INIT
-#       REAL, DIMENSION(NL) :: LL_INIT, SWCN_INIT, SAT_INIT, SW_INIT
+    CN_INIT = -99.0
+    BD_INIT = np.zeros(NL, dtype=float)
+    DLAYR_INIT = np.zeros(NL, dtype=float)
+    DS_INIT = np.zeros(NL, dtype=float)
+    DUL_INIT = np.zeros(NL, dtype=float)
+    LL_INIT = np.zeros(NL, dtype=float)
+    SWCN_INIT = np.zeros(NL, dtype=float)
+    SAT_INIT = np.zeros(NL, dtype=float)
+    SW_INIT = np.zeros(NL, dtype=float)
+    OC_INIT = np.zeros(NL, dtype=float)
+    TOTN_INIT = np.zeros(NL, dtype=float)
+    TotOrgN_INIT = np.zeros(NL, dtype=float)
+    SomLit = np.zeros(NL, dtype=float)
+    SomLit_INIT = np.zeros(NL, dtype=float)
+    SOM_PCT = np.zeros(NL, dtype=float)
+    SOM_PCT_init = np.zeros(NL, dtype=float)
+
 #
 # !     Base soil values modified by soil organic matter
 #       REAL dBD_SOM, dDLAYR_SOM, dDUL_SOM, dLL_SOM, dSOM, dOC
-#       REAL, DIMENSION(NL) :: BD_SOM, DLAYR_SOM, DS_SOM, DUL_SOM, LL_SOM
-#       REAL, DIMENSION(NL) :: SomLit, SomLit_INIT, SOM_PCT, SOM_PCT_init
-#       REAL, DIMENSION(NL) :: OC_INIT, TOTN_INIT, TotOrgN_init
+    BD_SOM = np.zeros(NL, dtype=float)
+    DLAYR_SOM = np.zeros(NL, dtype=float)
+    DS_SOM = np.zeros(NL, dtype=float)
+    DUL_SOM = np.zeros(NL, dtype=float)
+    LL_SOM = np.zeros(NL, dtype=float)
 #       REAL, DIMENSION(0:NL) :: SomLitC, KECHGE
 #
 # !     Izaurralde method
 #       INTEGER, PARAMETER :: METHOD = 2
-#       REAL, DIMENSION(NL) :: BD_calc, BD_calc_init  !, BD_mineral
-#
+#       REAL, DIMENSION(NL) ::  BD_calc_init  !, BD_mineral
+    BD_calc = np.zeros(NL, dtype=float)
 #       REAL CN_BASE
 #       REAL, DIMENSION(NL) :: BD_BASE, DL_BASE, DS_BASE, SAT_BASE,SC_BASE    !, RG_BASE
 #
@@ -285,7 +324,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
             try:
                 DS[L], CHAR = f86.read(CHARTEST)
             except Exception as e:
-                print(f"Error opening file {EFILE}: {e}")
+                print(f"Error opening file {LUNIO}: {e}")
                 return
 
             if L > 1 :
@@ -374,13 +413,13 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
                             if SW[L] < SWAD:
                                 SWnew = SWAD
                                 NMSG = NMSG + 1
-                                # WRITE(MSG(NMSG),'(I5,4F9.3)') L, SW(L), LL(L), SWAD, SWnew
+                                MSG[NMSG] = f"{L:5}{SW[L]:9.3f}{LL[L]:9.3f}{SWAD:9.3f}{SWnew:9.3f}"
                                 SW[L] = SWnew
                             else:
             # !                 Layers 2 thru NLAYR
                                 SWnew = LL[L]
                                 NMSG = NMSG + 1
-                                # WRITE(MSG(NMSG),'(I5,2F9.3,9X,F9.3)') L, SW(L), LL(L), SWnew
+                                MSG[NMSG] = "{:5d}{:9.3f}{:9.3f}{:9}{:9.3f}".format(L, SW[L], LL[L], '', SWnew)
                                 SW[L] = SWnew
 
                 if NMSG > 0:
@@ -397,7 +436,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
                             NMSG = 4
                         SWnew = SAT(L)
                         NMSG = NMSG + 1
-                        # WRITE(MSG(NMSG),'(I5,3F9.3)') L, SW(L), SAT(L), SWnew
+                        MSG[NMSG] = "{:5d}{:9.3f}{:9.3f}{:9.3f}".format(L, SW[L], SAT[L], SWnew)
                         SW[L] = SWnew
                 if NMSG > 0:
                     WARNING(NMSG, ERRKEY, MSG)
@@ -420,15 +459,14 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         if SALB < 1.E-4:
             SALB = 0.15
             if MULTI < 2:
-                WRITE(MSG(1),400) SALB
-        400     FORMAT('Soil albedo has been set to ',F5.1,'.')
+                MSG[1] = 'Soil albedo has been set to {:5.1f}.'.format(SALB)
                 WARNING(1, ERRKEY, MSG)
 
         if SLPF < 1.E-4:
             SLPF = 1.0
         elif SLPF < 0.9999:
-            WRITE(MSG(1),'("Soil photosynthesis factor (SLPF) =",F5.2)')SLPF
-            CALL WARNING(1,ERRKEY,MSG)
+            MSG[1] = 'Soil photosynthesis factor (SLPF) = {:F5.2})'.format(SLPF)
+            WARNING(1,ERRKEY,MSG)
 
 # C     Initialize curve number (according to J.T. Ritchie) 1-JUL-97 BDB
 #       IF (CN .LE. 25.0 .OR. CN .GT. 98.0 .AND. ISWWAT == 'Y') THEN
@@ -449,17 +487,14 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         if U < 1.E-4:
             U = 6.0
             if MULTI < 2:
-                WRITE(MSG(1),505) U
-        505     FORMAT('Stage 1 soil evaporation limit has been set to ',
-         &       F5.1,'.')
+                MSG[1] = 'Stage 1 soil evaporation limit has been set to {:5.1f}.'.format(U)
                 WARNING(1, ERRKEY, MSG)
 
         if SWCON < 1.E-4:
             SWCON = 0.25
             if MULTI < 2:
-                MSG[1]='A default soil water conductivity constant will be used:'
-                WRITE(MSG(2),510) SWCON
-        510       FORMAT("SWCON = ",F5.2,' (fraction/day).')
+                MSG[1] = 'A default soil water conductivity constant will be used:'
+                MSG[2] = "SWCON = {:5.2f}(fraction/day).".format(SWCON)
                 WARNING(2, ERRKEY, MSG)
 
         PHFLAG = False
@@ -643,15 +678,19 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
                     if L > 1:
                         for i in range(1, L):
                             NMSG = NMSG + 1
-                            WRITE(MSG(NMSG),'(I5,I6,2F6.1,F6.2)') i, NINT(DS(i)), CLAY(i), SILT(i), OC(i)
+                            MSG[NMSG] = '{:5d}{:6d}{:6.1f}{:6.1f}{:6.2f}'.format(i,
+                                                                                 NINT(DS[i]),
+                                                                                 CLAY[i], SILT[i], OC[i])
 
                 OC[L] = (0.15 * (CLAY[L] + SILT[L]) + 0.69) / 10.    #g/100g
                 NMSG = NMSG+1
-                WRITE(MSG(NMSG),'(I5,I6,2F6.1,F6.2," (estimated)")') L, NINT(DS(L)), CLAY(L), SILT(L), OC(L)
+                MSG[NMSG] = '{:5d}{:6d}{:6.1f}{:6.1f}{:6.2f}(estimated)'.format(L, NINT(DS[L]),
+                                                                                CLAY[L], SILT[L], OC[L])
                 NO_OC = True
             elif NO_OC:
                 NMSG = NMSG + 1
-                WRITE(MSG(NMSG),'(I5,I6,2F6.2,F6.3)') L, NINT(DS(L)), CLAY(L), SILT(L), OC(L)
+                MSG[NMSG] = '{:5d}{:6d}{:6.2f}{:6.2f}{:6.3f}(estimated)'.format(L, NINT(DS[L]),
+                                                                                CLAY[L], SILT[L], OC[L])
         if NO_OC:
             WARNING(NMSG,ERRKEY,MSG)
 
@@ -840,15 +879,15 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         SOILPROP.SLDESC        = SLDESC
         SOILPROP.TAXON         = TAXON
 
-        SOILPROP.COARSE = COARSE
+        # SOILPROP.COARSE = COARSE
 
-        SETPM(SOILPROP)
+        # SETPM(SOILPROP)
 
-        PUT(SOILPROP)
+        PUT_SOILPROP(SOILPROP)
 
         if ISWWAT == 'N': return
 
-        PRINT_SOILPROP(SOILPROP)
+        # PRINT_SOILPROP(SOILPROP)
 
 #-----------------------------------------------------------------------
 #     Initialization
@@ -884,15 +923,15 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 # !***********************************************************************
 # !     Seasonal initialization
 # !***********************************************************************
-    elif DYNAMIC == SEASINIT:
+    elif DYNAMIC == RC.SEASINIT:
 # !-----------------------------------------------------------------------
-        if ISWWAT == 'N': return
+        if sw.ISWWAT == 'N': return
 
         ISWTIL = ISWITCH.ISWTIL
         NTIL = TILLVALS.NTIL
 
-        OPSOILDYN(CONTROL, DYNAMIC, ISWITCH,BD, BD_SOM, CN, CRAIN, DLAYR,
-                  DUL, KECHGE, LL, PRINT_TODAY, SAT,SOILCOV, SUMKE, SWCN, TOTAW)
+        # OPSOILDYN(CONTROL, DYNAMIC, ISWITCH,BD, BD_SOM, CN, CRAIN, DLAYR,
+        #           DUL, KECHGE, LL, PRINT_TODAY, SAT,SOILCOV, SUMKE, SWCN, TOTAW)
 
 #     Skip initialization for sequenced runs:
         if 'FQ'.find(RNMODE) > 0 and RUN != 1: return
@@ -926,7 +965,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         DLAYR_SOM= DLAYR
 
 # !-----------------------------------------------------------------------
-        for L in range(1, NLAYR+1)
+        for L in range(1, NLAYR+1):
 #         Conversion from kg/ha to ppm (or mg/l).  Recalculate daily.
             KG2PPM[L] = 10.0 / (BD[L] * DLAYR[L])
             POROS[L]  = 1.0 - BD[L] / 2.65
@@ -950,18 +989,18 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #***********************************************************************
 #     Daily rate calculations
 #***********************************************************************
-    elif DYNAMIC == RATE:
+    elif DYNAMIC == RC.RATE:
 #-----------------------------------------------------------------------
-        if ISWWAT == 'N': return
+        if sw.ISWWAT == 'N': return
 #
 #      Initial SOM not established until end of SEASINIT section so
 #      remember initial values here.  Units are kg[Organic matter]/ha
-            if FIRST:
+        if FIRST:
 #        Save initial value of SOM
-                SomLit_init = SomLit
-                for L in range(1, NLAYR):
+            SomLit_init = SomLit
+            for L in range(1, NLAYR):
 #          (See conversion explanation below)
-                    SOM_PCT[L] = SomLit[L] * 1.E-5 / (BD[L] * DLAYR[L]) * 100.0
+                SOM_PCT[L] = SomLit[L] * 1.E-5 / (BD[L] * DLAYR[L]) * 100.0
 #
 # !         This can result in negative BD_mineral for very high organic
 # !           matter content.
@@ -970,26 +1009,26 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #
 # !         Instead, calculate a BD_calc. Use the
 # !           change to BD_calc to scale BD, which was input by user.
-                    BD_calc[L] = 100./(SOM_PCT[L]/0.224 + (100.-SOM_PCT[L])/2.65)
+                BD_calc[L] = 100./(SOM_PCT[L]/0.224 + (100.-SOM_PCT[L])/2.65)
 
 #        Set initial array
-            SOM_PCT_init = SOM_PCT
-            BD_calc_init = BD_calc
+        SOM_PCT_init = SOM_PCT
+        BD_calc_init = BD_calc
 
 #        Print initial values
-            Print_today = True
-            FIRST = True
+        Print_today = True
+        FIRST = False
 
 # !     ------------------------------------------------------------------
-            ALBEDO_avg(KTRANS, MEINF, MULCH, SOILPROP, SW(1), XHLAI)
+#             ALBEDO_avg(KTRANS, MEINF, MULCH, SOILPROP, SW(1), XHLAI)
 #
-            if 'RSM'.find(MEINF) > 0:
+        if 'RSM'.find(MEINF) > 0:
 #
 # !       ---------------------------------------------------
 # !       Update combined soil/mulch albedo
 # !       Transfer local values from constructed variables
-                MULCHCOVER = MULCH.MULCHCOVER
-                MULCHALB   = MULCH.MULCHALB
+            MULCHCOVER = MULCH.MULCHCOVER
+            MULCHALB   = MULCH.MULCHALB
 #
 # !       ---------------------------------------------------
 # !       Update BD, DLAYR, DUL, LL based on changes to soil organic matter
@@ -999,20 +1038,20 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 # !       Update soil water holding capacity daily due to changes in bulk
 # !       density and organic carbon content of soil.
 # !       These equations based on Gupta & Larson 1979, Adams 1973, Izaurralde 2006
-                for L  in range(1, NLAYR):
+            for L  in range(1, NLAYR):
 # !         Change to SOM since initialization
 # !         SOM units have already been converted to OM (not C)
-                    dSOM = SomLit[L] - SomLit_init[L] # kg[OM]/ha
+                dSOM = SomLit[L] - SomLit_init[L] # kg[OM]/ha
 #
-                    if dSOM < 0.01:
+                if dSOM < 0.01:
 # !           No changes to soil properties due to organic matter
-                        BD_SOM[L]   = BD_INIT[L]
-                        DLAYR_SOM[L]= DLAYR_INIT[L]
-                        DS_SOM[L]   = DS_INIT[L]
-                        DUL_SOM[L]  = DUL_INIT[L]
-                        LL_SOM[L]   = LL_INIT[L]
+                    BD_SOM[L]   = BD_INIT[L]
+                    DLAYR_SOM[L]= DLAYR_INIT[L]
+                    DS_SOM[L]   = DS_INIT[L]
+                    DUL_SOM[L]  = DUL_INIT[L]
+                    LL_SOM[L]   = LL_INIT[L]
 
-                    else:
+                else:
 # !           Need to update soil properties based on changes to SOM
 #
 # !           First -- modify layer thickness
@@ -1024,41 +1063,41 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 # !           dDlayr = ------ * ------ * ------- * -------- * -----------
 # !                      ha       kg     10^4 m2   10^4 cm2   0.224 g[om]
 #
-                        dDLAYR_SOM = dSOM * 4.46E-5
+                    dDLAYR_SOM = dSOM * 4.46E-5
 # !              cm      =kg/ha * 4.46E-5
 #
 # !           New base layer thickness and depths
-                        DLAYR_SOM[L] = DLAYR_INIT[L] + dDLAYR_SOM
+                    DLAYR_SOM[L] = DLAYR_INIT[L] + dDLAYR_SOM
 #
 # !           -------------------------------------------------------
 # !           Change SOM from kg/ha to percent
-                        SOM_PCT[L] = SomLit[L] * 1.E-5/(BD_SOM[L]*DLAYR_SOM[L])*100.
+                    SOM_PCT[L] = SomLit[L] * 1.E-5/(BD_SOM[L]*DLAYR_SOM[L])*100.
 #
 # !            BD_SOM(L) = 100.0 /
 # !     &        (SOM_PCT(L) / 0.224 + (100. - SOM_PCT(L)) / BD_mineral(L))
 # !
-                        BD_calc[L] = 100.0 / (SOM_PCT[L] / 0.224 + (100. - SOM_PCT[L]) / 2.65)
+                    BD_calc[L] = 100.0 / (SOM_PCT[L] / 0.224 + (100. - SOM_PCT[L]) / 2.65)
 
-                        BD_SOM[L] = BD_calc[L] / BD_calc_init[L] * BD_init[L]
+                    BD_SOM[L] = BD_calc[L] / BD_calc_init[L] * BD_INIT[L]
 #
 # !           Limit BD to realistic values
 # !           BD_SOM(L) = MIN(BD_SOM(L), 1.8)
 # !           BD_SOM(L) = MAX(BD_SOM(L), 0.25)
 # !           Upper limit for BD_SOM
-                        BD_SOM[L] = min(BD_SOM[L], BD_INIT[L]*1.2, 1.80)
+                    BD_SOM[L] = min(BD_SOM[L], BD_INIT[L]*1.2, 1.80)
 # !           Lower limit for BD_SOM
-                        BD_SOM[L] = max(BD_SOM[L], BD_INIT[L]*0.8, 0.95)
-                        dBD_SOM = BD_SOM[L] - BD_INIT[L]
+                    BD_SOM[L] = max(BD_SOM[L], BD_INIT[L]*0.8, 0.95)
+                    dBD_SOM = BD_SOM[L] - BD_INIT[L]
 #
 # !           -------------------------------------------------------
 # !           Update DS
-                        if L == 1:
-                            DS_SOM[1] = DLAYR_SOM[1]
-                        else:
-                            DS_SOM[L] = DS[L-1] + DLAYR_SOM[L]
+                    if L == 1:
+                        DS_SOM[1] = DLAYR_SOM[1]
+                    else:
+                        DS_SOM[L] = DS[L-1] + DLAYR_SOM[L]
 
 # !           Change SOM from kg/ha to percent
-                            SOM_PCT[L] = SomLit[L] * 1.E-5/(BD_SOM[L]*DLAYR_SOM[L])*100.
+                        SOM_PCT[L] = SomLit[L] * 1.E-5/(BD_SOM[L]*DLAYR_SOM[L])*100.
 # !                         kg[OM]    g[OM]/cm2     cm3       1
 # !                      = -------- * --------- * -------  * ---- * 100%
 # !                           ha      kg[OM]/ha   g[soil]     cm
@@ -1066,26 +1105,26 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 # !                      = g[OM]/g[soil] * 100%
 #
 # !           Change in %SOM
-                            dOC = SOM_PCT[L] - SOM_PCT_init[L]
+                        dOC = SOM_PCT[L] - SOM_PCT_init[L]
 
 # !           Equation to modify DUL depends on soil texture (Gupta & Larson, 1979)
-                            if COARSE[L]:
-                # !             Coarse soils  --  use DUL10
-                                dDUL_SOM = 0.004966 * dOC - 0.2423 * dBD_SOM
-                            else:
-                # !             Other soils -- use DUL33
-                                dDUL_SOM = 0.002208 * dOC - 0.1434 * dBD_SOM
+                        if COARSE[L]:
+            # !             Coarse soils  --  use DUL10
+                            dDUL_SOM = 0.004966 * dOC - 0.2423 * dBD_SOM
+                        else:
+            # !             Other soils -- use DUL33
+                            dDUL_SOM = 0.002208 * dOC - 0.1434 * dBD_SOM
 
-                            DUL_SOM[L] = DUL_INIT[L] + dDUL_SOM
+                        DUL_SOM[L] = DUL_INIT[L] + dDUL_SOM
 
-                # !           Lower limit
-                            dLL_SOM = 0.002228 * dOC + 0.02671 * dBD_SOM
-                            LL_SOM[L]  = LL_INIT[L] + dLL_SOM
+            # !           Lower limit
+                        dLL_SOM = 0.002228 * dOC + 0.02671 * dBD_SOM
+                        LL_SOM[L]  = LL_INIT[L] + dLL_SOM
 
                 # !            IF (L==1) WRITE(1000,*)dOC, dBD_SOM, dLL_SOM, LL_SOM(1)
 #
 # !     Tillage effects applied to SOM modified values
-        if 'YR'.find(ISWTIL) > 0 and NTIL > 0 and YRDOY == TILLVALS.TILDATE:
+        if 'YR'.find(sw.ISWTIL) > 0 and NTIL > 0 and YRDOY == TILLVALS.TILDATE:
             BD_BASE   = BD_SOM
             CN_BASE   = CN_INIT
             DS_BASE   = DS_SOM
@@ -1106,15 +1145,15 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #      &    DS_TILLED, SAT_TILLED, SC_TILLED)               !OutpuT
 #
 #
-        PUT(SOILPROP)
+        PUT_SOILPROP(SOILPROP)
 #
 # !***********************************************************************
 # !***********************************************************************
 # !     Daily integration
 # !***********************************************************************
-    elif DYNAMIC == INTEGR:
+    elif DYNAMIC == RC.INTEGR:
 # !-----------------------------------------------------------------------
-        if ISWWAT == 'N': return
+        if sw.ISWWAT == 'N': return
 # !-----------------------------------------------------------------------
 # !  Initialize surface soil properties
 # !-----------------------------------------------------------------------
@@ -1132,7 +1171,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #       !SOILCOV = CANCOV + MULCHCOVER * (1.0 - CANCOV)
             SOILCOV = MULCHCOVER
 #
-        if ('YR'.find(ISWTIL) > 0 and NTIL .> 0) or TILLED:
+        if ('YR'.find(sw.ISWTIL) > 0 and NTIL > 0) or TILLED:
             pass
 #
 #         TILDATE = TILLVALS % TILDATE
@@ -1326,19 +1365,19 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         SOILPROP.SWCN   = SWCN
         SOILPROP.POROS  = POROS
 
-        PUT(SOILPROP)
+        PUT_SOILPROP(SOILPROP)
 
-# !***********************************************************************
-# !***********************************************************************
-# !     Daily output
-# !***********************************************************************
-    elif DYNAMIC == OUTPUT or DYNAMIC == SEASEND:
-# !-----------------------------------------------------------------------
-    if ISWWAT == 'N': return
+#***********************************************************************
+#***********************************************************************
+#     Daily output
+#***********************************************************************
+    elif DYNAMIC == RC.OUTPUT or DYNAMIC == RC.SEASEND:
+#-----------------------------------------------------------------------
+        if sw.ISWWAT == 'N': return
 
-        OPSOILDYN(CONTROL, DYNAMIC, ISWITCH,BD, BD_SOM, CN, CRAIN, DLAYR,
-                  DUL, KECHGE, LL, PRINT_TODAY, SAT,SOILCOV, SUMKE,
-                  SWCN, TOTAW)
+        # OPSOILDYN(CONTROL, DYNAMIC, ISWITCH,BD, BD_SOM, CN, CRAIN, DLAYR,
+        #           DUL, KECHGE, LL, PRINT_TODAY, SAT,SOILCOV, SUMKE,
+        #           SWCN, TOTAW)
 
 # !***********************************************************************
 # !***********************************************************************
@@ -1980,8 +2019,8 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 # !  Called by: SoilDYN, CellInit_2D
 # !  Calls    :
 # !=======================================================================
-#       SUBROUTINE SoilLayerText(DS, NLAYR,        !Input
-#      &    LayerText)                             !Output
+def SoilLayerText(DS, NLAYR):
+     &    LayerText)                             !Output
 #
 #       USE ModuleDefs
 #       INTEGER NLAYR, L
@@ -2046,128 +2085,112 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #
 #       RETURN
 #       END SUBROUTINE SoilLayerText
-# C=======================================================================
+#=======================================================================
 #
-# !=======================================================================
-# !   SoilLayerClass, Subroutine
-# !-----------------------------------------------------------------------
-# !     Define the type of soil layer.
-# !-----------------------------------------------------------------------
-# !  REVISION HISTORY
-# !  08/17/2011
-# !-----------------------------------------------------------------------
-# !  Called by: SoilDYN, CellInit_2D when (DYNAMIC = RUNINIT) and
-# !=======================================================================
-#       SUBROUTINE SoilLayerClass(ISWITCH,
-#      &    MULTI, DS, NLAYR, SLDESC, TAXON,                !Input
-#      &    CaCO3, PH, CEC, CLAY, SOILLAYERTYPE)            !Output
-#
+#=======================================================================
+#   SoilLayerClass, Subroutine
+#-----------------------------------------------------------------------
+#     Define the type of soil layer.
+# -----------------------------------------------------------------------
+def SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON):
+    import numpy as np
+    from WARNING import WARNING
+    from ModuleDefs import NL, ISWITCH
 #       USE ModuleDefs
 #       IMPLICIT NONE
-#       EXTERNAL UPCASE, WARNING, LENSTRING, INFO
+#       EXTERNAL UPCASE, LENSTRING, INFO
 #
 #       TYPE (SwitchType) , INTENT(IN) :: ISWITCH  !Simulation options
 #       INTEGER NLAYR, L, LENGTH, LEN1, LEN2, MULTI, LenString, I
-#       REAL, DIMENSION(NL) :: DS, CaCO3, PH, CEC, CLAY
+    PH = np.zeros(NL, dtype=float)
+    CaCO3 = np.zeros(NL, dtype=float)
+    DS = np.zeros(NL, dtype=float)
+    CaCO3 = np.zeros(NL, dtype=float)
+    # CaCO3 = [-99.0] * NL
+    CEC = np.zeros(NL, dtype=float)
+    CLAY = np.zeros(NL, dtype=float)
 #       CHARACTER*1  UPCASE
 #       CHARACTER*17 SOILLAYERTYPE(NL)
+    SOILLAYERTYPE = np.empty(NL, dtype='U17')
+    # SOILLAYERTYPE = [' ' * 17 for _ in range(NLAYR)]
 #       CHARACTER*50 SLDESC, TAXON
 #       CHARACTER*7, PARAMETER :: ERRKEY = 'SOILLayerClass'
 #       CHARACTER*78 MSG(NL+4)
 #       LOGICAL VOLCANIC
-#
-# !     Define the type of soil layer.
-# !     First check soil name for occurrence of 'ANDOSOL', 'ANDISOL',
-# !     'VOLCAN' or 'ANDEPT'.  These indicate volcanic soils.
-#       VOLCANIC = .FALSE.
-#       LENGTH = MAX0(LEN(TRIM(SLDESC)), LEN(TRIM(TAXON)))
-#       DO I = 1, LENGTH
-#         SLDESC(I:I) = UPCASE(SLDESC(I:I))
-#         TAXON(I:I)  = UPCASE(TAXON(I:I))
-#       ENDDO
-#
-#       IF (INDEX(SLDESC // TAXON,'ANDOSOL') > 0 .OR.
-#      &    INDEX(SLDESC // TAXON,'ANDISOL') > 0 .OR.
-#      &    INDEX(SLDESC // TAXON,'VOLCAN' ) > 0 .OR.
-#      &    INDEX(SLDESC // TAXON,'ANDEPT' ) > 0) THEN
-#         VOLCANIC = .TRUE.
-#       ENDIF
-#
-# !     Calcareous soil is with >15% (w:w) of CaCO3.
-# !     Highly weathered is CEC:CLAY < 16 cmol/kg (meq/100g)
-# !     Slightly weathered is CEC:CLAY >16 mmol/kg
-#       DO L = 1, NLAYR
-# !       First check for calcareous soil
-#         IF (CaCO3(L) > 0.15) THEN
-#           SOILLAYERTYPE(L) = 'CALCAREOUS       '
-#           CYCLE
-#         ELSEIF (CaCO3(L) < 0.) THEN
-#           IF (pH(L) > 7 .AND. ISWITCH%ISWPHO /= 'N' .AND. MULTI < 2)THEN
-#             WRITE(MSG(1),'("CaCO3 value missing for soil layer. ",I2)')L
-#             MSG(2) = "Soil classification may be in error."
-#             WRITE(MSG(2),'("pH =",F8.1,
-#      &        " Possible calcareous soil type.")') pH(L)
-#             CALL WARNING(2,ERRKEY,MSG)
-#           ENDIF
-#         ENDIF
-#
-# !       Next check for andisol
-#         IF (VOLCANIC) THEN
-#           SOILLAYERTYPE(L) = 'ANDISOL          '
-#           CYCLE
-#         ENDIF
-#
-# !       Last classify by slightly or higly weathered (or unknown)
-#         IF (CEC(L) > 0.0 .AND. CLAY(L) > 0.0) THEN
-#           IF (CEC(L)/(CLAY(L)/100.) > 16.) THEN
-#             SOILLAYERTYPE(L) = 'SLIGHTLYWEATHERED'
-#           ELSE
-#             SOILLAYERTYPE(L) = 'HIGHLYWEATHERED  '
-#           ENDIF
-#           CYCLE
-#         ELSE
-#           SOILLAYERTYPE(L) = 'UNKNOWN          '
-#           IF (ISWITCH%ISWPHO .NE. 'N' .AND. MULTI < 2) THEN
-#             WRITE(MSG(1),'("Insufficient data available to classify",
-#      &      " soil layer ",I2)') L
-#             WRITE(MSG(2),'("Default characteristics will be used.")')
-#             WRITE(MSG(3),'("  CaCO3 =",F8.2,"%")') CaCO3(L)
-#             WRITE(MSG(4),'("  CEC   =",F8.2," cmol/kg")') CEC(L)
-#             WRITE(MSG(5),'("  pH    =",F8.1)') pH(L)
-#             WRITE(MSG(6),'("  Clay  =",F8.1,"%")') CLAY(L)
-#             WRITE(MSG(7),
-#      &        '("This may affect results of soil phosphorus model.")')
-#             CALL INFO(7,ERRKEY,MSG)
-#           ENDIF
-#         ENDIF
-#       ENDDO
-# ! CHP the following statement should be in here or SOILDYN??
-#       IF (ISWITCH%ISWPHO == 'Y') THEN
-#         MSG(1) = "Soil layer classifications (used for soil P model)"
-#         MSG(2) = "Layer Depth Soil_Layer_Type   Backup_Data"
-#         DO L = 1, NLAYR
-#           SELECT CASE(SOILLAYERTYPE(L))
-#           CASE('CALCAREOUS       ')
-#             WRITE(MSG(L+2),'(I3,I7,2X,A17," CaCO3:",F6.2,"%")')
-#      &        L, NINT(DS(L)),SOILLAYERTYPE(L), CaCO3(L)
-#           CASE('ANDISOL          ')
-#             LEN1 = MIN(39,LENSTRING(SLDESC))
-#             LEN2 = MIN(47-LEN1,LENSTRING(TAXON))
-#             WRITE(MSG(L+2),'(I3,I7,2X,A17,1X,A,",",A)')
-#      &        L, NINT(DS(L)),SOILLAYERTYPE(L), SLDESC(1:LEN1),
-#      &        TAXON(1:LEN2)
-#           CASE DEFAULT
-#             WRITE(MSG(L+2),'(I3,I7,2X,A17," CaCO3:",F6.2,"%; CEC:",F6.1,
-#      &        " cmol/kg; CLAY:",F6.1,"%")')
-#      &        L, NINT(DS(L)),SOILLAYERTYPE(L), CaCO3(L), CEC(L), CLAY(L)
-#           END SELECT
-#         ENDDO
-#         CALL INFO(NLAYR+2,ERRKEY,MSG)
-#       ENDIF
-#
-#
-#       RETURN
-#       END SUBROUTINE SoilLayerClass
+    ERRKEY = 'SOILLayerClass'
+    MSG = [''] * (NLAYR + 4)
+#      Define the type of soil layer.
+#      First check soil name for occurrence of 'ANDOSOL', 'ANDISOL',
+#      'VOLCAN' or 'ANDEPT'.  These indicate volcanic soils.
+    VOLCANIC = False
+    LENGTH = max(len(SLDESC), len(TAXON))
+
+    SLDESC = SLDESC.upper()
+    TAXON = TAXON.upper()
+
+#      Calcareous soil is with >15% (w:w) of CaCO3.
+#      Highly weathered is CEC:CLAY < 16 cmol/kg (meq/100g)
+#      Slightly weathered is CEC:CLAY >16 mmol/kg
+#  CHP the following statement should be in here or SOILDYN??
+#     if 'SLDESC' + 'TAXON'.find('ANDOSOL') > 0 or
+    if any(word in (SLDESC + TAXON) for word in ['ANDOSOL', 'ANDISOL', 'VOLCAN', 'ANDEPT']):
+        VOLCANIC = True
+
+    for L in range(1,NLAYR+1):
+        # !       First check for calcareous soil
+        if CaCO3[L] > 0.15:
+            SOILLAYERTYPE[L] = 'CALCAREOUS       '
+            continue
+        elif CaCO3[L] < 0.0:
+            if PH[L] > 7 and ISWITCH.ISWPHO != 'N' and MULTI < 2:
+                MSG[1] = f"CaCO3 value missing for soil layer. {L:2d}"
+                MSG[2] = "Soil classification may be in error."
+                MSG[2] = f"pH = {PH[L]:8.1f} Possible calcareous soil type."
+                WARNING(2, ERRKEY, MSG)
+        # !       Next check for andisol
+        if VOLCANIC:
+            SOILLAYERTYPE[L] = 'ANDISOL          '
+            continue
+
+        if CEC[L] > 0.0 and CLAY[L] > 0.0:
+            ratio = CEC[L] / (CLAY[L] / 100.0)
+            if ratio > 16.0:
+                SOILLAYERTYPE[L] = 'SLIGHTLYWEATHERED'
+            else:
+                SOILLAYERTYPE[L] = 'HIGHLYWEATHERED  '
+        else:
+            SOILLAYERTYPE[L] = 'UNKNOWN          '
+            if ISWITCH.ISWPHO != 'N' and MULTI < 2:
+                MSG[1] = f"Insufficient data available to classify soil layer {L:2d}"
+                MSG[2] = "Default characteristics will be used."
+                MSG[3] = f"  CaCO3 = {CaCO3[L]:8.2f} %"
+                MSG[4] = f"  CEC   = {CEC[L]:8.2f} cmol/kg"
+                MSG[5] = f"  pH    = {PH[L]:8.1f}"
+                MSG[6] = f"  Clay  = {CLAY[L]:8.1f} %"
+                MSG[7] = "This may affect results of soil phosphorus model."
+                # INFO(7, ERRKEY, MSG)
+    if ISWITCH.ISWPHO == 'Y':
+        MSG[1] = "Soil layer classifications (used for soil P model)"
+        MSG[2] = "Layer Depth Soil_Layer_Type   Backup_Data"
+        for L in range(1,NLAYR):
+            depth = round(DS[L])
+            layer_type = SOILLAYERTYPE[L].strip()
+            if layer_type == 'CALCAREOUS':
+                MSG[L + 2] = f"{L+2:3d}{depth:7d}  {SOILLAYERTYPE[L]} CaCO3:{CaCO3[L]:6.2f}%"
+            elif layer_type == 'ANDISOL':
+                LEN1 = min(39, len(SLDESC))
+                LEN2 = min(47 - LEN1, len(TAXON))
+                MSG[L + 2] = f"{L + 2:3d}{depth:7d}  {SOILLAYERTYPE[L]} {SLDESC[:LEN1]}, {TAXON[:LEN2]}"
+            else:
+                MSG[L + 2] = (
+                    f"{L + 2:3d}{depth:7d}  {SOILLAYERTYPE[L]}"
+                    f" CaCO3:{CaCO3[L]:6.2f}%;"
+                    f" CEC:{CEC[L]:6.1f} cmol/kg;"
+                    f" CLAY:{CLAY[L]:6.1f}%"
+                )
+        # INFO(NLAYR + 2, ERRKEY, MSG)
+
+    return CaCO3, PH, CEC, CLAY, SOILLAYERTYPE
 # C=======================================================================
 #
 # !==============================================================================
@@ -2277,3 +2300,16 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #
 #       RETURN
 #       END SUBROUTINE SETPM
+
+
+# Test driver for SoilLayerClass
+# from ModuleDefs import SwitchType
+# ISWITCH = SwitchType()
+# ISWITCH.ISWPHO = 'N'
+# MULTI = 0
+# DS = [5.0, 15.0, 30.0, 45.0, 60.0, 90.0, 120.0, 150.0, 180.0]
+# NLAYR = 9
+# SLDESC = 'Candler'
+# TAXON  = 'Hyperthermic uncoated'
+# CaCO3, PH, CEC, CLAY, SOILLAYERTYPE = SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON)
+# print(SOILLAYERTYPE)

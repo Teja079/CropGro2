@@ -227,6 +227,7 @@ class SoilType:
       SAT   = [0.0] * NL
       SWCN  = [0.0] * NL
       SWCON: float = 0.0
+      TEXTURE = np.empty(NL,dtype='U12')
 
 # Data which can be transferred between modules
 @dataclass
@@ -234,6 +235,7 @@ class TransferType:
     CONTROL : ControlType
     ISWITCH : SwitchType
     WEATH : WeathType   # Supplemental weather data
+    SOILPROP : SoilType
     MHARVEST : MHarveType
     MGMT : MgmtType
     WEATHER : WeatherType
@@ -245,13 +247,14 @@ class TransferType:
 CONTROL = ControlType()
 ISWITCH = SwitchType()
 WEATH = WeathType()
+SOILPROP = SoilType()
 MHARVEST = MHarveType()
 MGMT = MgmtType()
 WEATHER = WeatherType()
 OUTPUT = OutputType()
 WATER = WaterType
 
-SAVE_data = TransferType(CONTROL, ISWITCH, WEATH, MHARVEST, MGMT, WEATHER, OUTPUT, WATER)
+SAVE_data = TransferType(CONTROL, ISWITCH, WEATH, SOILPROP, MHARVEST, MGMT, WEATHER, OUTPUT, WATER)
 
 def PUT_Char(ModuleName, VarName, Value):
     from WARNING import WARNING
@@ -289,6 +292,9 @@ def Put_ISWITCH (ISWITCH_arg):
 def Put_WEATHER (WEATHER_arg):
     #ISWITCH_arg = SwitchType()
     SAVE_data.WEATHER = WEATHER_arg
+
+def PUT_SOILPROP(SOIL_ARG):
+    SAVE_data.SOILPROP = SOIL_ARG
 
 def PUT_Integer(ModuleName, VarName, Value):
     ERR = False
