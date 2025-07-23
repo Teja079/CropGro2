@@ -31,6 +31,7 @@ NOHEADER = {}
 @dataclass(frozen=True)
 class RunConstants:
     RUNINIT : int = 1
+    INIT : int = 2
     SEASINIT : int = 2
     RATE : int = 3
     INTEGR : int = 4
