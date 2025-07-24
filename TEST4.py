@@ -58,6 +58,8 @@
 # C           SOILNI, YR_DOY, FLOOD_CHEM, OXLAYER
 # C=======================================================================
 #
+import math
+
 from TEST2 import NLAYR
 
 
@@ -80,26 +82,71 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
 #
 #       LOGICAL IUON
 #
-#       INTEGER DOY, DYNAMIC, INCDAT, IUYRDOY, IUOF, L
-#       INTEGER NLAYR
-#       INTEGER NSOURCE, YEAR, YRDOY
-#
-#       REAL AD, AK, ALGFIX
-#       REAL NFAC, NNOM
-#       REAL SNH4_AVAIL, SNO3_AVAIL, SUMFERT
-#       REAL SWEF, TFUREA
-#       REAL TNH4, TNH4NO3, TNO3, UHYDR
-#       REAL WFSOM, WFUREA, XL, XMIN
-#       REAL TUREA
-#
-#       REAL ADCOEF(NL), BD(NL), DLAYR(NL)
-#       REAL DLTSNH4(NL), DLTSNO3(NL), DLTUREA(NL), DRN(NL), DUL(NL)
-#       REAL UPFLOW(NL)
-#       REAL KG2PPM(NL), LITC(0:NL), LL(NL)
-#       REAL NH4(NL), NO3(NL), PH(NL), SAT(NL), SNH4(NL)
-#       REAL SNO3(NL), SSOMC(0:NL), ST(NL), SW(NL)
-#       REAL TFNITY(NL), UNH4(NL), UNO3(NL), UREA(NL), UPPM(NL)
-#       REAL NH4_plant(NL), NO3_plant(NL)
+    import numpy as np
+
+    # Scalars (integers)
+    DOY = 0
+    DYNAMIC = 0
+    INCDAT = 0
+    IUYRDOY = 0
+    IUOF = 0
+    L = 0
+    NLAYR = 0
+    NSOURCE = 0
+    YEAR = 0
+    YRDOY = 0
+
+    # Scalars (floats)
+    AD = 0.0
+    AK = 0.0
+    ALGFIX = 0.0
+    NFAC = 0.0
+    NNOM = 0.0
+    SNH4_AVAIL = 0.0
+    SNO3_AVAIL = 0.0
+    SUMFERT = 0.0
+    SWEF = 0.0
+    TFUREA = 0.0
+    TNH4 = 0.0
+    TNH4NO3 = 0.0
+    TNO3 = 0.0
+    UHYDR = 0.0
+    WFSOM = 0.0
+    WFUREA = 0.0
+    XL = 0.0
+    XMIN = 0.0
+    TUREA = 0.0
+
+    # Arrays
+    ADCOEF = np.zeros(NL)
+    BD = np.zeros(NL)
+    DLAYR = np.zeros(NL)
+    DLTSNH4 = np.zeros(NL)
+    DLTSNO3 = np.zeros(NL)
+    DLTUREA = np.zeros(NL)
+    DRN = np.zeros(NL)
+    DUL = np.zeros(NL)
+    UPFLOW = np.zeros(NL)
+    KG2PPM = np.zeros(NL)
+    LITC = np.zeros(NL + 1)    # LITC(0:NL)
+    LL = np.zeros(NL)
+    NH4 = np.zeros(NL)
+    NO3 = np.zeros(NL)
+    PH = np.zeros(NL)
+    SAT = np.zeros(NL)
+    SNH4 = np.zeros(NL)
+    SNO3 = np.zeros(NL)
+    SSOMC = np.zeros(NL + 1)   # SSOMC(0:NL)
+    ST = np.zeros(NL)
+    SW = np.zeros(NL)
+    TFNITY = np.zeros(NL)
+    UNH4 = np.zeros(NL)
+    UNO3 = np.zeros(NL)
+    UREA = np.zeros(NL)
+    UPPM = np.zeros(NL)
+    NH4_plant = np.zeros(NL)
+    NO3_plant = np.zeros(NL)
+
 #
 #       REAL IMM(0:NL,NELEM), MNR(0:NL,NELEM)
 #
@@ -184,32 +231,32 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
 # !      PI = 3.1416
 #
 # !     Transfer values from constructed data types into local variables.
-    DYNAMIC = CONTROL % DYNAMIC
-    YRDOY   = CONTROL % YRDOY
+    DYNAMIC = CONTROL.DYNAMIC
+    YRDOY   = CONTROL.YRDOY
 
-    ADCOEF = SOILPROP % ADCOEF
-    BD     = SOILPROP % BD
-    DLAYR  = SOILPROP % DLAYR
-    DUL    = SOILPROP % DUL
-    KG2PPM = SOILPROP % KG2PPM
-    LL     = SOILPROP % LL
-    NLAYR  = SOILPROP % NLAYR
-    PH     = SOILPROP % PH
-    SAT    = SOILPROP % SAT
+    ADCOEF = SOILPROP.ADCOEF
+    BD     = SOILPROP.BD
+    DLAYR  = SOILPROP.DLAYR
+    DUL    = SOILPROP.DUL
+    KG2PPM = SOILPROP.KG2PPM
+    LL     = SOILPROP.LL
+    NLAYR  = SOILPROP.NLAYR
+    PH     = SOILPROP.PH
+    SAT    = SOILPROP.SAT
 
-    NSWITCH = ISWITCH % NSWI
-    ISWNIT  = ISWITCH % ISWNIT
-    MEGHG   = ISWITCH % MEGHG
+    NSWITCH = ISWITCH.NSWI
+    ISWNIT  = ISWITCH.ISWNIT
+    MEGHG   = ISWITCH.MEGHG
 
-    NBUND = FLOODWAT % NBUND
-    FLOOD = FLOODWAT % FLOOD
+    NBUND = FLOODWAT.NBUND
+    FLOOD = FLOODWAT.FLOOD
 
-    FERTDAY = FERTDATA % FERTDAY
+    FERTDAY = FERTDATA.FERTDAY
 
-    SRAD = WEATHER % SRAD
-    TMAX = WEATHER % TMAX
-    TMIN = WEATHER % TMIN
-    RAIN = WEATHER % RAIN
+    SRAD = WEATHER.SRAD
+    TMAX = WEATHER.TMAX
+    TMIN = WEATHER.TMIN
+    RAIN = WEATHER.RAIN
 
 # !***********************************************************************
 # !***********************************************************************
@@ -271,13 +318,12 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
             UNH4[L]       = 0.0
             UNO3[L]       = 0.0
             N2O_data.wfps[L] = min[1.0, sw[L] / soilprop.poros[L]]
-#         ENDDO
 #
 # !        IF (INDEX('N',ISWNIT) > 0) RETURN
 #
 # !         Set initial SOM and nitrogen conditions for each soil layer.
-        SoilNi_init (CONTROL, ISWNIT,SOILPROP, ST):
-            return NH4, NO3, SNH4, SNO3, TFNITY, UPPM, UREA
+#        SoilNi_init (CONTROL, ISWNIT,SOILPROP, ST):
+#            return NH4, NO3, SNH4, SNO3, TFNITY, UPPM, UREA
 
         NCHECK_inorg(CONTROL,NLAYR, NH4, NO3, SNH4, SNO3, UREA)
 #
@@ -341,15 +387,14 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
         DLTSNO3 = 0.0
         DLTSNH4 = 0.0
 
-            for L in range(NLAYR):
-                # Update with yesterday's plant N uptake
-                SNO3[L] -= UNO3[L]
-                SNH4[L] -= UNH4[L]
-                NO3[L] = SNO3[L] * KG2PPM[L]
-                NH4[L] = SNH4[L] * KG2PPM[L]
-
+        for L in range(NLAYR):
+            # Update with yesterday's plant N uptake
+            SNO3[L] -= UNO3[L]
+            SNH4[L] -= UNH4[L]
+            NO3[L] = SNO3[L] * KG2PPM[L]
+            NH4[L] = SNH4[L] * KG2PPM[L]
                 # Must calculate WTNUP here to keep the soil N balance consistent
-                WTNUP += (UNO3[L] + UNH4[L]) / 10.0  # g[N]/m² cumulative
+            WTNUP += (UNO3[L] + UNH4[L]) / 10.0  # g[N]/m² cumulative
 
     #
 # !     Check for fertilizer added today or active slow release fertilizers
@@ -420,7 +465,7 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
 # !     ----------------------------------------------------------------
 # !     If DOY=IUOF (has been set in Fert_Place), then all the urea has
 # !     hydrolyzed already.
-        YEAR, DOY = YR_DOY(CONTROL.YRDOY)
+        YR_DOY(CONTROL.YRDOY,YEAR, DOY)
         if DOY == IUOF:
             for L in range(NLAYR):
                 DLTSNH4[L] = DLTSNH4[L] + UREA[L]
@@ -489,10 +534,10 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
                 WFSOM = 0.75
 
 # !           Limit the soil water factors between 0 and 1.
-            WFSOM = AMAX1 (AMIN1 (WFSOM, 1.), 0.)
+            WFSOM = max (min (WFSOM, 1.), 0.)
 # !           Calculate the soil temperature factor for the urea hydrolysis.
             TFUREA = (ST[L] / 40.) + 0.20
-            TFUREA = AMAX1 (AMIN1 (TFUREA, 1.), 0.)
+            TFUREA = max(min (TFUREA, 1.), 0.)
 # !           Water filled pore space
             N2O_data % wfps[L] = min (1.0, sw[L] / soilprop % poros[L])
 # !-----------------------------------------------------------------------
@@ -502,7 +547,7 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
                 # Calculate the maximum hydrolysis rate of urea.
                 # AK = -1.12 + 1.31 * OC(L) + 0.203 * PH(L) - 0.155 * OC(L) * PH(L)
                 AK = -1.12 + 1.31 * SSOMC[L] * 1.E-4 * KG2PPM[L] + 0.203 * PH[L] \
-                     - 0.155 * SSOMC[L] * 1.E-4 * KG2PPM[L] * PH[L]
+                     - 0.155     * SSOMC[L] * 1.E-4 * KG2PPM[L] * PH[L]
                 AK = max(AK, 0.25)
 
                 # If urease inhibitor is active, reduce hydrolysis rate
@@ -836,154 +881,16 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
 # !***********************************************************************
 # !     END OF FIRST DYNAMIC IF CONSTRUCT
 # !***********************************************************************
-#       ENDIF
---------------------unable to find this end if loops statting position-------------------------------
 #
 # !***********************************************************************
 # !***********************************************************************
 # !     DAILY INTEGRATION (also performed for seasonal initialization)
 # !***********************************************************************
-        if DYNAMIC == SEASINIT or DYNAMIC == INTEGR:
-
-            if 'N' in ISWNIT:
-                return
-
-            if DYNAMIC == INTEGR:
-                # Update flood N components
-                if NBUND > 0:
-                    FLOOD_CHEM(
-                        CONTROL, ISWITCH,
-                        FLOODWat, LFD10, SOILPROP, SNO3, SNH4, UREA,    # Input
-                        SRAD, SW, TMAX, TMIN, XHLAI,                    # Input
-                        DLTSNH4, DLTSNO3, DLTUREA, FLOODN, OXLAYR,      # I/O
-                        ALGFIX, BD1, CUMFNRO, TOTAML, TOTFLOODN         # Output
-                    )
-
-                # Update oxidation layer variables
-                OXLAYER(
-                    CONTROL,
-                    BD1, ES, FERTDATA, FLOODWAT, LFD10,                # Input
-                    NSWITCH, SNH4, SNO3, SOILPROP, SRAD, ST,           # Input
-                    SW, TMAX, TMIN, UREA, XHLAI,                       # Input
-                    DLTSNH4, DLTSNO3, DLTUREA, OXLAYR,                 # I/O
-                    ALI, TOTAML                                        # Output
-                )
-
-            # Loop through soil layers for integration
-            for L in range(NLAYR):
-                SNO3[L] = SNO3[L] + DLTSNO3[L]
-                SNH4[L] = SNH4[L] + DLTSNH4[L]
-                UREA[L] = UREA[L] + DLTUREA[L]
-
-                # Underflow trapping (commented out in original Fortran)
-                # if abs(SNO3[L]) < 1.E-8: SNO3[L] = 0.0
-                # if abs(SNH4[L]) < 1.E-8: SNH4[L] = 0.0
-                # if abs(UREA[L]) < 1.E-8: UREA[L] = 0.0
-                # if SNO3[L] <= 0.0: SNO3[L] = 0.0
-                # if SNH4[L] <= 0.0: SNH4[L] = 0.0
-                # if UREA[L] <= 0.0: UREA[L] = 0.0
-
-                # Conversions
-                NO3[L] = SNO3[L] * KG2PPM[L]
-                NH4[L] = SNH4[L] * KG2PPM[L]
-                # UPPM[L] = UREA[L] * KG2PPM[L]
-
-            # Call NCHECK to check for and fix negative values
-            NCHECK_inorg(
-                CONTROL,
-                NLAYR, NH4, NO3, SNH4, SNO3, UREA
-            )
-
-            # Soil profile accumulations
-            TNH4 = 0.0
-            TNO3 = 0.0
-            TUREA = 0.0
-            TN2OnitrifD = 0.0
-
-            for L in range(NLAYR):
-                TNH4 += SNH4[L]
-                TNO3 += SNO3[L]
-                TUREA += UREA[L]
-                TN2OnitrifD += N2Onitrif[L]
-
-                # Calculate this where uptake is removed from the soil
-                # WTNUP += (UNO3[L] + UNH4[L]) / 10.0  # g[N]/m2 cumul.
-
-                if L == 0:
-                    TMINERN = MNR[0][N] + MNR[1][N]
-                    TIMMOBN = IMM[0][N] + IMM[1][N]
-                else:
-                    TMINERN += MNR[L][N]
-                    TIMMOBN += IMM[L][N]
-
-            TNH4NO3 = TNH4 + TNO3
-
-            # Seasonal cumulative values
-            CMINERN += TMINERN        # mineralization
-            CIMMOBN += TIMMOBN        # immobilization
-            CNETMINRN = CMINERN - CIMMOBN  # net mineralization
-
-            CNITRIFY += TNITRIFY          # Nitrification
-            CN2Onitrif += TN2OnitrifD     # N2O from nitrification
-            CNOflux += TNOfluxD           # NO flux
-
-            # These are accumulated in the Denit routines:
-            # CNOX += TNOXD                 # Denitrification
-            # CN2Odenit += TN2OdenitD      # N2O from denitrification
-            # CN2 += TN2D                  # N2 flux
-
-            CNUPTAKE = WTNUP * 10.0
-
-            N2O_data.NITRIF = NITRIF
-            N2O_data.TNITRIFY = TNITRIFY
-            N2O_data.CNITRIFY = CNITRIFY
-
-            N2O_data.N2Onitrif = N2Onitrif
-            N2O_data.TN2OnitrifD = TN2OnitrifD
-            N2O_data.CN2Onitrif = CN2Onitrif
-
-            N2O_data.NOflux = NOflux
-            N2O_data.TNOfluxD = TNOfluxD
-            N2O_data.CNOflux = CNOflux
-
-            # HJ added CNTILEDR in SoilNiBal and OpSoilNi
-            if DYNAMIC == SEASINIT:
-                SoilNiBal(
-                    CONTROL, ISWITCH,
-                    ALGFIX, CIMMOBN, CMINERN, CUMFNRO, FERTDATA, NBUND, CLeach,
-                    CNTILEDR, TNH4, TNO3, TOTAML, TOTFLOODN, TUREA, WTNUP,
-                    N2O_data
-                )
-
-                OpSoilNi(
-                    CONTROL, ISWITCH, SoilProp,
-                    CIMMOBN, CMINERN, CNETMINRN, CNITRIFY, CNUPTAKE,
-                    FertData, NH4, NO3,
-                    CLeach, CNTILEDR, TNH4, TNH4NO3, TNO3, TUREA, CNOX, TOTAML
-                )
-
-#
-        NO3_plant = NO3
-        NH4_plant = NH4
-#
-# !***********************************************************************
-# !***********************************************************************
-# !     OUTPUT
-# !***********************************************************************
-        elif DYNAMIC == OUTPUT or DYNAMIC == SEASEND:
-
-            if 'N' in ISWNIT:
-                return
-
-            # HJ added CNTILEDR in OpSoilNi and SoilNiBal
-            # Write daily output
-            OpSoilNi(
-                CONTROL, ISWITCH, SoilProp,
-                CIMMOBN, CMINERN, CNETMINRN, CNITRIFY, CNUPTAKE,
-                FertData, NH4, NO3,
-                CLeach, CNTILEDR, TNH4, TNH4NO3, TNO3, TUREA, CNOX, TOTAML
-            )
-
+    if DYNAMIC == SEASINIT or DYNAMIC == INTEGR:
+        if 'N' in ISWNIT:
+            return
+        if DYNAMIC == INTEGR:
+            # Update flood N components
             if NBUND > 0:
                 FLOOD_CHEM(
                     CONTROL, ISWITCH,
@@ -992,23 +899,137 @@ def SoilNi (CONTROL, ISWITCH,CH4_data, DRN, ES, FERTDATA, FLOODWAT, IMM,LITC, MN
                     DLTSNH4, DLTSNO3, DLTUREA, FLOODN, OXLAYR,      # I/O
                     ALGFIX, BD1, CUMFNRO, TOTAML, TOTFLOODN         # Output
                 )
-
+            # Update oxidation layer variables
+            OXLAYER(
+                CONTROL,
+                BD1, ES, FERTDATA, FLOODWAT, LFD10,                # Input
+                NSWITCH, SNH4, SNO3, SOILPROP, SRAD, ST,           # Input
+                SW, TMAX, TMIN, UREA, XHLAI,                       # Input
+                DLTSNH4, DLTSNO3, DLTUREA, OXLAYR,                 # I/O
+                ALI, TOTAML                                        # Output
+            )
+        # Loop through soil layers for integration
+        for L in range(NLAYR):
+            SNO3[L] = SNO3[L] + DLTSNO3[L]
+            SNH4[L] = SNH4[L] + DLTSNH4[L]
+            UREA[L] = UREA[L] + DLTUREA[L]
+            # Underflow trapping (commented out in original Fortran)
+            # if abs(SNO3[L]) < 1.E-8: SNO3[L] = 0.0
+            # if abs(SNH4[L]) < 1.E-8: SNH4[L] = 0.0
+            # if abs(UREA[L]) < 1.E-8: UREA[L] = 0.0
+            # if SNO3[L] <= 0.0: SNO3[L] = 0.0
+            # if SNH4[L] <= 0.0: SNH4[L] = 0.0
+            # if UREA[L] <= 0.0: UREA[L] = 0.0
+            # Conversions
+            NO3[L] = SNO3[L] * KG2PPM[L]
+            NH4[L] = SNH4[L] * KG2PPM[L]
+            # UPPM[L] = UREA[L] * KG2PPM[L]
+        # Call NCHECK to check for and fix negative values
+        NCHECK_inorg(
+            CONTROL,
+            NLAYR, NH4, NO3, SNH4, SNO3, UREA
+        )
+        # Soil profile accumulations
+        TNH4 = 0.0
+        TNO3 = 0.0
+        TUREA = 0.0
+        TN2OnitrifD = 0.0
+        for L in range(NLAYR):
+            TNH4 += SNH4[L]
+            TNO3 += SNO3[L]
+            TUREA += UREA[L]
+            TN2OnitrifD += N2Onitrif[L]
+            # Calculate this where uptake is removed from the soil
+            # WTNUP += (UNO3[L] + UNH4[L]) / 10.0  # g[N]/m2 cumul.
+            if L == 0:
+                TMINERN = MNR[0][N] + MNR[1][N]
+                TIMMOBN = IMM[0][N] + IMM[1][N]
+            else:
+                TMINERN += MNR[L][N]
+                TIMMOBN += IMM[L][N]
+        TNH4NO3 = TNH4 + TNO3
+        # Seasonal cumulative values
+        CMINERN += TMINERN        # mineralization
+        CIMMOBN += TIMMOBN        # immobilization
+        CNETMINRN = CMINERN - CIMMOBN  # net mineralization
+        CNITRIFY += TNITRIFY          # Nitrification
+        CN2Onitrif += TN2OnitrifD     # N2O from nitrification
+        CNOflux += TNOfluxD           # NO flux
+        # These are accumulated in the Denit routines:
+        # CNOX += TNOXD                 # Denitrification
+        # CN2Odenit += TN2OdenitD      # N2O from denitrification
+        # CN2 += TN2D                  # N2 flux
+        CNUPTAKE = WTNUP * 10.0
+        N2O_data.NITRIF = NITRIF
+        N2O_data.TNITRIFY = TNITRIFY
+        N2O_data.CNITRIFY = CNITRIFY
+        N2O_data.N2Onitrif = N2Onitrif
+        N2O_data.TN2OnitrifD = TN2OnitrifD
+        N2O_data.CN2Onitrif = CN2Onitrif
+        N2O_data.NOflux = NOflux
+        N2O_data.TNOfluxD = TNOfluxD
+        N2O_data.CNOflux = CNOflux
+        # HJ added CNTILEDR in SoilNiBal and OpSoilNi
+        if DYNAMIC == SEASINIT:
             SoilNiBal(
                 CONTROL, ISWITCH,
                 ALGFIX, CIMMOBN, CMINERN, CUMFNRO, FERTDATA, NBUND, CLeach,
                 CNTILEDR, TNH4, TNO3, TOTAML, TOTFLOODN, TUREA, WTNUP,
                 N2O_data
             )
+            OpSoilNi(
+                CONTROL, ISWITCH, SoilProp,
+                CIMMOBN, CMINERN, CNETMINRN, CNITRIFY, CNUPTAKE,
+                FertData, NH4, NO3,
+                CLeach, CNTILEDR, TNH4, TNH4NO3, TNO3, TUREA, CNOX, TOTAML
+            )
 
-            OpN2O(CONTROL, ISWITCH, SOILPROP, N2O_data)
+    NO3_plant = NO3
+    NH4_plant = NH4
 
-            OPGHG(CONTROL, ISWITCH, N2O_data, CH4_data)
+# !***********************************************************************
+# !***********************************************************************
+# !     OUTPUT
+# !***********************************************************************
+    elif DYNAMIC == OUTPUT or DYNAMIC == SEASEND:
+
+        if 'N' in ISWNIT:
+            return
+
+        # HJ added CNTILEDR in OpSoilNi and SoilNiBal
+        # Write daily output
+        OpSoilNi(
+            CONTROL, ISWITCH, SoilProp,
+            CIMMOBN, CMINERN, CNETMINRN, CNITRIFY, CNUPTAKE,
+            FertData, NH4, NO3,
+            CLeach, CNTILEDR, TNH4, TNH4NO3, TNO3, TUREA, CNOX, TOTAML
+        )
+
+        if NBUND > 0:
+            FLOOD_CHEM(
+                CONTROL, ISWITCH,
+                FLOODWat, LFD10, SOILPROP, SNO3, SNH4, UREA,    # Input
+                SRAD, SW, TMAX, TMIN, XHLAI,                    # Input
+                DLTSNH4, DLTSNO3, DLTUREA, FLOODN, OXLAYR,      # I/O
+                ALGFIX, BD1, CUMFNRO, TOTAML, TOTFLOODN         # Output
+            )
+
+        SoilNiBal(
+            CONTROL, ISWITCH,
+            ALGFIX, CIMMOBN, CMINERN, CUMFNRO, FERTDATA, NBUND, CLeach,
+            CNTILEDR, TNH4, TNO3, TOTAML, TOTFLOODN, TUREA, WTNUP,
+            N2O_data
+        )
+
+        OpN2O(CONTROL, ISWITCH, SOILPROP, N2O_data)
+
+        OPGHG(CONTROL, ISWITCH, N2O_data, CH4_data)
 
 # C***********************************************************************
 # C***********************************************************************
 # C     END OF SECOND DYNAMIC IF CONSTRUCT
 # C***********************************************************************
-#
+# 
 # C-----------------------------------------------------------------------
     return FLOODN,NH4, NO3, NH4_plant, NO3_plant, UPPM
 #
