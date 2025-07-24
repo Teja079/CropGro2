@@ -23,7 +23,7 @@ MonthTxt = "A"
 
 
 # STDPATH = "C:/CropGro/"
-STDPATH = "C:\\DSSAT48\\"                         
+STDPATH = "C:\\DSSAT48\\"
 
 NOHEADER = {}
 
@@ -229,6 +229,19 @@ class SoilType:
       SWCN  = [0.0] * NL
       SWCON: float = 0.0
       TEXTURE = np.empty(NL,dtype='U12')
+
+@dataclass
+class CH4_type:
+    CH4Consumption : float = 0.0
+    CH4Emission : float = 0.0
+    CH4Leaching : float = 0.0
+    CH4Stored : float = 0.0
+    CumCH4Consumpt :  float = 0.0
+    CumCH4Emission :  float = 0.0
+    CumCH4Leaching : float = 0.0
+    CO2emission : float = 0.0
+    CumCO2Emission : float = 0.0
+
 
 # Data which can be transferred between modules
 @dataclass
