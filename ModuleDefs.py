@@ -229,6 +229,7 @@ class SoilType:
       SWCN  = [0.0] * NL
       SWCON: float = 0.0
       TEXTURE = np.empty(NL,dtype='U12')
+      POROS = np.zeros(NL, dtype=float)
 
 @dataclass
 class CH4_type:
@@ -242,6 +243,22 @@ class CH4_type:
     CO2emission : float = 0.0
     CumCO2Emission : float = 0.0
 
+# Data transferred from CROPGRO routine
+@dataclass
+class PlantType:
+    CANHT : float = 0.0
+    CANWH : float = 0.0
+    DXR57 : float = 0.0
+    EXCESS : float = 0.0
+    PLTPOP : float = 0.0
+    RNITP : float = 0.0
+    SLAAD : float = 0.0
+    XPOD : float = 0.0
+    BIOMAS : float = 0.0
+    NR5 : int = 0
+    iSTAGE : int = 0
+    iSTGDOY : int = 0
+    iSTNAME : str = ' '
 
 # Data which can be transferred between modules
 @dataclass
@@ -374,6 +391,22 @@ def GET_Char(ModuleName, VarName, Value):
         MSG[1] = 'Value set to zero.'
         WARNING(2, 'GET_Integer', MSG)
     return
+
+def GET_float(ModuleName, VarName, Value):
+    match ModuleName:
+        case 'PLANT':
+            match VarName:
+                case 'BIOMAS': Value = SAVE_data.PLANT.BIOMAS
+                case 'CANHT' : Value = SAVE_data.PLANT.CANHT
+                case 'CANWH' : Value = SAVE_data.PLANT.CANWH
+                case 'DXR57' : Value = SAVE_data.PLANT.DXR57
+                case 'EXCESS': Value = SAVE_data.PLANT.EXCESS
+                case 'PLTPOP': Value = SAVE_data.PLANT.PLTPOP
+                case 'RNITP' : Value = SAVE_data.PLANT.RNITP
+                case 'SLAAD' : Value = SAVE_data.PLANT.SLAAD
+                case 'XPOD'  : Value = SAVE_data.PLANT.XPOD
+                case _: ERR = True
+    return Value
 
 def GET_OUTPUT():
     return SAVE_data.OUTPUT
