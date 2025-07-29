@@ -65,6 +65,7 @@ class ControlType:
     DSSATP: str = ' '
     DAS = 0            # Days after simulation
     DYNAMIC = 1        # Integer indicating part of simulation
+    LUNIO : int = -99
     YRDOY = 0          # Year and day of year
     YRSIM = 0          # Year of simulation
     ROTNUM, RUN, TRTNUM, ERRCODE, MULTI = [0] * 5
@@ -215,6 +216,7 @@ class FloodWatType:
 # Data construct for mulch layer
 class MulchType:
     MULCHMASS : float = 0.0    #Mass of surface mulch layer (kg[dry mat.]/ha)
+    MULCHALB : float = 0.0     #Albedo of mulch layer
 
 @dataclass
 class SoilType:
