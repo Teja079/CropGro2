@@ -12,14 +12,17 @@
 #=======================================================================
 def WATBAL(CONTROL, ISWITCH, ES, IRRAMT, SOILPROP, SWDELTX, TILLVALS, WEATHER, #Inputs
             FLOODWAT, MULCH, SWDELTU): #Inputs/Outputs
+
     from ModuleDefs import NL, RunConstants as RC, SAVE_data
     from WSUBS import IPWBAL, WTDEPT
     from TILEDRAIN import TILEDRAIN
     from WaterTable import WaterTable
 
+
     DLAYR, DLAYR_YEST, DS, DUL, LL = ([-99.0]*NL for _ in range(5))
     SAT, SWCN, SW_AVAIL = ([-99.0] * NL for _ in range(3))
-
+    TDFC : float = 0
+    TDLNO : int = 0
     #Tile drain variables:
     SWDELTT = [-99.0]*NL
 
@@ -30,8 +33,8 @@ def WATBAL(CONTROL, ISWITCH, ES, IRRAMT, SOILPROP, SWDELTX, TILLVALS, WEATHER, #
 
     #Water table variables:
     SWDELTW, SWDELTW_mm = ([-99.0] * NL for _ in range(2))
-    DYNAMIC = CONTROL . DYNAMIC
-    YRDOY   = CONTROL . YRDOY
+    DYNAMIC = CONTROL.DYNAMIC
+    YRDOY   = CONTROL.YRDOY
 
     #Output Lists
     DRN = [-99.0] * NL
