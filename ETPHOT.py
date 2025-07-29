@@ -9,11 +9,15 @@
 #  Called from: SPAM
 #  Calls:       ETIND,ETINP,PGINP,PGIND,RADABS,ETPHR,ROOTWU,SOIL05,SWFACS
 #========================================================================
+from ModuleDefs import PUT_float
+
 
 def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEATHER, XLAI):
     import numpy as np
+    from math import log
     from ModuleDefs import TS, GET_float, RunConstants as RC, NL
     from DATES import YR_DOY
+    from ROOTWU import ROOTWU
 
 #       USE ModuleDefs     !Definitions of constructed variable types,
 #       USE ModuleData
@@ -34,21 +38,27 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #       REAL AGEFAC,AZIR,AZZON(TS),BETA(TS),BETN,   !AWEV1,
 #      &  CANHT,CANWH,CEC,CEN,CLOUDS,CO2,CO2HR,DAYKP,DAYKR,DAYPAR,
 #      &  DAYRAD,DLAYR(NL),DLAYR2(NL),DULE,DYABSP,DYABSR,DYINTP,
-#      &  DYINTR,EDAY,EHR,EOP,EP,ES,ETNOON,FNPGN(4),FNPGL(4),FRACSH,
-#      &  FRDFPN,FRDFRN,FRDIFP(TS),FRDIFR(TS),FRSHAV,FRSHV,
-#      &  HS,HOLDHT,KDIRBL,KDRBLV,HOLDLA,LAISH,LAISHV,LAISL,
+#      &  DYINTR,EDAY,EHR,EOP,EP,ES,ETNOON,FNPGN(4),FNPGL(4),
+    FRACSH : float = 0.0
+    FRSHV : float = 0.0
+    KDIRBL  : float = 0.0
+#      &  FRDFPN,FRDFRN,FRDIFP(TS),FRDIFR(TS),FRSHAV,
+#      &  HS,HOLDHT,KDRBLV,HOLDLA,LAISH,LAISHV,LAISL,
 #      &  LAISLV,LFANGD(3),LFMXSH,LFMXSL,LL(NL),LL2(NL),LLE,LMXSHN,
 #      &  LMXSLN,LMXREF,LNREF,LWIDTH,NSLOPE,PALB,PARHR(TS),PARN,PARSH,
 #      &  PARSUN(3),PCABPD,PCABPN,PCABRD,PCABRN,PCABSP,PCABSR,PCINPD,
 #      &  PCINPN,PCINRD,PCINRN,PCINTP,PCINTR,PCNLSH,PCNLSL,PG,PGCO2,
 #      &  PGDAY,SLPF,PGHR,PGNOON,PNLSHN,PNLSLN,QEREF,RABS(3),
-#      &  RADHR(TS),RADN,RCUTIC,REFHT,RHUMHR(TS),RLV(NL),RNITP,ROWSPC,
+#      &  RADHR(TS),RADN,RCUTIC,REFHT,RHUMHR(TS),RLV(NL),RNITP
+    ROWSPC : float = 0.0
 #      &  RWU(NL),RWUH,SALB,SCVIR,SCVP,SHCAP(NL),SLAAD,SLWREF,
 #      &  SLWSH,SLWSHN,
 #      &  SLWSL,SLWSLN,SLWSLO,SNDN,SNUP,ST(NL),STn(NL),ST2(NL),STCOND(NL),
 #      &  SW(NL),SW2(NL),SWFAC,SWE,SWEF,T0HR,TAIRHR(TS),TA,
 #      &  TCAN(TS),TCANAV,TCANDY,TDAY,TEMPN,THR,TINCR,TRWUP,
-#      &  TSHR(NL), TSRF(3),TSRFN(3),TSURF(3,1),HOLDWH,WINDHR(TS),
+#      &  TSHR(NL), ,TSURF(3,1),HOLDWH,WINDHR(TS),
+    TSRF = np.zeros(4, dtype=float)
+    TSRFN = np.zeros(4, dtype=float)
 #      &  XLAI, TSHRn(NL),
 #      &  XLMAXT(6),XSW(NL,3),YLMAXT(6),YSCOND(NL,3),YSHCAP(NL,3),TMIN
 #       REAL SAT(NL),TGRO(TS),TGROAV,TGRODY,TAV,TAMP
@@ -65,7 +75,8 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 # !                TINCR is the lenfth of a time increment in hours
 #       REAL PHTHRS10, PLTPOP
 #       REAL PORMIN, RWUMX
-#       REAL PALBW, SALBW, SRAD, DayRatio
+#       REAL , SALBW, SRAD, DayRatio
+    PALBW : float = 0.0
 #
 #       REAL CONDSH, CONDSL, RA, RB(3), RSURF(3), Rnet(3,1)
 #       REAL Enoon, Tnoon, WINDN, TCANn, CSHnn, CSLnn,
@@ -80,8 +91,8 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #      &     RBSH,RBSL,RBSS,RBSHN,RBSLN,RBSSN,RBSHT,RBSLT,RBSST
 # C         added by BAK on 10DEC2015
 #
-#       REAL, DIMENSION(NL) :: BD, DUL, SAT2, DUL2, RLV2
-#
+#       REAL, DIMENSION(NL) :: BD, DUL, SAT2, RLV2
+    DUL2 = np.zeros(NL, dtype=float)
 #       CHARACTER(len=2) PGPATH
 #       character(len=8) model
 #       REAL CCNEFF, CICAD, CMXSF, CQESF
@@ -218,12 +229,12 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
             TGRODY = TA
             TEMPN = 0.0
 
-            for I in range (1,3):
+            for I in range (1,4):  # 3-> 4
                 TSRF[I] = TA
                 TSRFN[I] = TA
            # LPM 04DEC14 to include the surface temperature as output
             SRFTEMP = TSRFN[3]
-            OPSTEMP(CONTROL,ISWITCH,DOY,SRFTEMP,ST,TAV,TAMP)  #LPM
+            # OPSTEMP(CONTROL,ISWITCH,DOY,SRFTEMP,ST,TAV,TAMP)  #LPM
 
             RWU,  TRWUP = ROOTWU(RC.SEASINIT,DLAYR, LL, NLAYR, PORMIN, RLV, RWUMX, SAT, SW)
 
@@ -243,8 +254,9 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
         SWFAC   = 1.0
 
         if MEPHO == 'L':
-            OpETPhot(CONTROL, ISWITCH, PCINPD, PG, PGNOON, PCINPN, SLWSLN,
-                     SLWSHN,PNLSLN, PNLSHN, LMXSLN, LMXSHN, TGRO, TGROAV)
+            pass
+            # OpETPhot(CONTROL, ISWITCH, PCINPD, PG, PGNOON, PCINPN, SLWSLN,
+            #          SLWSHN,PNLSLN, PNLSHN, LMXSLN, LMXSHN, TGRO, TGROAV)
 
 #***********************************************************************
 #***********************************************************************
@@ -256,7 +268,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #     Initialize DAILY parameters.
 #     PLTPOP can change due to pest damage. CHP
         if ROWSPC > 0.0 and PLTPOP > 0.0:
-            BETN = 1.0 / (ROWSPC*PLTPOP)
+            BETN = 1.0 / (ROWSPC * PLTPOP)
         else:
             BETN = 0.0
 
@@ -275,7 +287,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
                 ETIND(DUL2, RLV, SALBW, SW))
 
 
-            RWU, TRWUP = ROOTWU(RATE,DLAYR, LL, NLAYR, PORMIN, RLV, RWUMX, SAT, SW)
+            RWU, TRWUP = ROOTWU(RC.RATE,DLAYR, LL, NLAYR, PORMIN, RLV, RWUMX, SAT, SW)
 #
 #  KJB NOTE TO CP.  NEED TO DELETE RWUH HERE, PUT IT INTO HOURLY
 #  KJB CALL TO ROOTWU, DO WE INITIATE HOURLY? PRIOR TO HOURLY RATE?
@@ -314,10 +326,10 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #           Calculate hourly radiation absorption by canopy/soil.
 #
             (FRACSH, FRSHV, KDIRBL, KDRBLV, LAISH, LAISHV, LAISL, LAISLV,
-                PARSH, PARSUN, PCABSP, PCABSR, PCINTP, PCINTR, RABS)
-                = RADABS(AZIR, AZZON(H), BETA(H), BETN, CANHT, CANWH, DAYTIM,
+                PARSH, PARSUN, PCABSP, PCABSR, PCINTP, PCINTR, RABS) = (
+                RADABS (AZIR, AZZON(H), BETA(H), BETN, CANHT, CANWH, DAYTIM,
                    FRDIFP(H), FRDIFR(H), H, LFANGD, MEEVP, MEPHO, PALB,
-                   PARHR(H), RADHR(H), ROWSPC, SALB, SCVIR, SCVP, XLAI)
+                   PARHR(H), RADHR(H), ROWSPC, SALB, SCVIR, SCVP, XLAI))
 #
 # C         Calculate canopy ET/photosynthesis.
 #
@@ -354,15 +366,15 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
             (AGEFAC, EHR, LFMXSH, LFMXSL, PCNLSH, PCNLSL, PGHR, SLWSH,
                 SLWSL, T0HR, TCAN(H), THR, TSHR, TSURF, CONDSH, CONDSL, RA,
                 RB, RSURF, Rnet, G, LH, LHEAT, SH, SHEAT, RBSH, RBSL, RBSS,
-                AGEQESL, CO2QESL, QEFFSL)
-                = ETPHR( CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE,
-                   FNPGL, FNPGN, FRACSH, FRSHV, KDIRBL, LAISH, LAISHV, LAISL,
-                   LAISLV, LLE,LMXREF, LNREF, LWIDTH, MEEVP, MEPHO, NLAYR,
-                   NSLOPE, PARSH, PARSUN, QEREF, RABS, RCUTIC, REFHT,
-                   RHUMHR(H), RNITP, RWUH, SHCAP, SLAAD, SLWREF,
-                   SLWSLO, STCOND, SWE, TAIRHR(H), TA, TMIN, TYPPGL,
-                   TYPPGN, WINDHR(H), XLAI, XLMAXT, YLMAXT, CCNEFF,
-                         CICAD, CMXSF, CQESF, PGPATH)
+                AGEQESL, CO2QESL, QEFFSL) = (
+                ETPHR( CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE,
+                FNPGL, FNPGN, FRACSH, FRSHV, KDIRBL, LAISH, LAISHV, LAISL,
+                LAISLV, LLE,LMXREF, LNREF, LWIDTH, MEEVP, MEPHO, NLAYR,
+                NSLOPE, PARSH, PARSUN, QEREF, RABS, RCUTIC, REFHT,
+                RHUMHR(H), RNITP, RWUH, SHCAP, SLAAD, SLWREF,
+                SLWSLO, STCOND, SWE, TAIRHR(H), TA, TMIN, TYPPGL,
+                TYPPGN, WINDHR(H), XLAI, XLMAXT, YLMAXT, CCNEFF,
+                CICAD, CMXSF, CQESF, PGPATH))
 
 #          Integrate instantaneous canopy photoynthesis (µmol CO2/m2/s)
 #          and evapotranspiration (mm/h) to get daily values (g CO2/m2/d
@@ -427,12 +439,14 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 
                     for I in range(1,3)
                         TSRFN[I] = TSURF[I,1]
-                      ENDDO
+
                     #LPM 04DEC14 to include the surface temperature as output
                     SRFTEMP = TSRFN[3]
                     for I in range (1,NLAYR):
                         TSHRn[I] = TSHR[I]
+
                     STn = SOIL05(TSHRn,0,NLAYR)
+
                     #LPM 04DEC14 to include the temperature as output (OPSTEMP)
                     ST = STn
                     # The following 8 variales added by Bruce Kimball on 1Dec2014
@@ -530,7 +544,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
             TGROAV = TCANAV
 
             for I in range(1,TS):
-                TGRO[I] = TCAN[I}
+                TGRO[I] = TCAN[I]
 
             # Save noon and midnight growth and air temperatures
             # add by Bruce Kimball on 9MAR15
@@ -555,7 +569,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
         if MEPHO == 'L':
 # ! FO - 06/30/2022 - Protections on DAYRAD for higher XLATs
             if XLAI > 0.0 and DAYPAR > 0.0:
-                DAYKP = -LOG((DAYPAR-DYINTP)/DAYPAR) / XLAI
+                DAYKP = -log((DAYPAR-DYINTP)/DAYPAR) / XLAI
             else:
                 DAYKP = 0.0
 
@@ -605,8 +619,8 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
                     COLDSTR = 0.0
                 PG = PG * EXCESS
 
-                OpETPhot(CONTROL, ISWITCH, PCINPD, PG, PGNOON, PCINPN,
-                         SLWSLN, SLWSHN, PNLSLN, PNLSHN, LMXSLN, LMXSHN, TGRO, TGROAV)
+                # OpETPhot(CONTROL, ISWITCH, PCINPD, PG, PGNOON, PCINPN,
+                #          SLWSLN, SLWSHN, PNLSLN, PNLSHN, LMXSLN, LMXSHN, TGRO, TGROAV)
 #***********************************************************************
 #***********************************************************************
 #     SEASEND
@@ -614,8 +628,9 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
     elif DYNAMIC == RC.SEASEND or DYNAMIC == RC.OUTPUT:
 #-----------------------------------------------------------------------
         if MEPHO == 'L':
-            OpETPhot(CONTROL, ISWITCH, PCINPD, PG, PGNOON, PCINPN, SLWSLN,
-                     SLWSHN, PNLSLN, PNLSHN, LMXSLN, LMXSHN, TGRO, TGROAV)
+            pass
+            # OpETPhot(CONTROL, ISWITCH, PCINPD, PG, PGNOON, PCINPN, SLWSLN,
+            #          SLWSHN, PNLSLN, PNLSHN, LMXSLN, LMXSHN, TGRO, TGROAV)
 
         if MEEVP == "Z":
             pass
@@ -634,8 +649,8 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
         METEMP = ' '
 
 # !     Store PG and AGEFAC for use by PLANT routine.
-    PUT('SPAM', 'AGEFAC', AGEFAC)
-    PUT('SPAM', 'PG'    , PG)
+    PUT_float('SPAM', 'AGEFAC', AGEFAC)
+    PUT_float('SPAM', 'PG'    , PG)
 
 # C       If the method to compute ET is energy balance, then
 # C       grow the plants at canopy temperature. Else grow them
