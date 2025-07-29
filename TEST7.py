@@ -141,7 +141,7 @@ def READ_ASCE_KT(CONTROL, MEEVP):
         LUNIO = open(FILEIO, "r")
         ERR = 0
     except OSError as e:
-        ERR = e.errno               
+        ERR = e.errno
         ERROR(ERRKEY, ERR, FILEIO, 0)
     try:
         LUNIO = open(FILEIO, "r")
