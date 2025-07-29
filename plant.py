@@ -12,12 +12,13 @@
 #     As additional crops are added, all will be called by this routine
 #     rather than by the main program.
 #=======================================================================
-#
 def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
           NH4, NO3, SKi_Avail, SPi_AVAIL,SNOW, SOILPROP, SRFTEMP, ST, SW,
           TRWUP, WEATHER, YREND, YRPLT,  FLOODN):
 
-    from ModuleDefs import RunConstants as RC
+    from ModuleDefs import RunConstants as RC, ResidueType, Put_ISWITCH, Put_CONTROL
+    from CROPGRO import CROPGRO
+    from OPSUM import SUMVALS
 # C-----------------------------------------------------------------------
 # !     The following models are currently supported:
 # !         'CRGRO' - CROPGRO
@@ -85,6 +86,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #       REAL, DIMENSION(NL) :: ST, SW, UNO3, UNH4, UH2O
 #
 #       LOGICAL FixCanht, BUNDED    !, CRGRO
+    FixCanht : bool
 # c-----------------------------------------------------------------------
 # C         Variables needed to run ceres maize.....W.D.B. 12-20-01
 #       CHARACTER*2 CROP
@@ -111,16 +113,17 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #
 # !     Arrays which contain data for printing in SUMMARY.OUT file
     SUMNUM = 1
-#       CHARACTER*4, DIMENSION(SUMNUM) :: LABEL
-#       REAL, DIMENSION(SUMNUM) :: VALUE
+#       CHARACTER*4, DIMENSION(SUMNUM) ::
+    LABEL = [' ']
+    VALUE = [0.0]
 #
 # !-----------------------------------------------------------------------
 # !     Constructed variables are defined in ModuleDefs.
 #       TYPE (ControlType)  CONTROL
 #       TYPE (SwitchType)   ISWITCH
 #       TYPE (SoilType)     SOILPROP
-#       TYPE (ResidueType)  HARVRES
-#       TYPE (ResidueType)  SENESCE
+    HARVRES : ResidueType()
+    SENESCE : ResidueType()
 #       TYPE (FloodWatType) FLOODWAT
 #       TYPE (FloodNType)   FLOODN
 #       TYPE (WeatherType)  WEATHER
@@ -158,7 +161,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
             ISWITCH.MEPHO = 'C'
 # !       Put ISWITCH data where it can be retreived
 # !         by other modules as needed.
-            PUT(ISWITCH)
+            Put_ISWITCH(ISWITCH)
 #
 # !       Write message to WARNING.OUT file
 #         WRITE(MESSAGE(1),110)
@@ -175,7 +178,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
             ISWITCH.MEEVP = 'R'
 # !       Put ISWITCH data where it can be retreived
 # !         by other modules as needed.
-            PUT(ISWITCH)
+            Put_ISWITCH(ISWITCH)
 #
 # !       Write message to WARNING.OUT file
 #         WRITE(MESSAGE(1),210)
@@ -664,7 +667,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 # !     Some crops may modify the CONTROL % CropStatus directly.
         if CropStatus > 0:
             CONTROL.CropStatus = CropStatus
-            PUT(CONTROL)
+            Put_CONTROL(CONTROL)
 # !***********************************************************************
 # !***********************************************************************
 # !     Processing after calls to crop models:
@@ -697,7 +700,8 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 # !     Store Summary.out labels and values in arrays to send to
 # !     OPSUM routines for printing.  Integers are temporarily
 # !     saved as real numbers for placement in real array.
-#       LABEL(1)  = 'CRST'; VALUE(1)  = CONTROL % CropStatus
+        LABEL[1]  = 'CRST'
+        VALUE[1]  = CONTROL.CropStatus
 #
 #       !Send labels and values to OPSUM
         SUMVALS (SUMNUM, LABEL, VALUE)

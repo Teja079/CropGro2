@@ -12,6 +12,8 @@ NCOHORTS: int = 300   # Maximum number of cohorts
 NPHS: int = 13
 MaxFiles : int = 500  # Maximum number of output files
 EvaluateNum : int = 40
+NELEM    = 3   #Number of elements modeled (currently N & P)
+# Note: set NELEM to 3 for now so Century arrays will match
 
 PI = 3.14159265
 RAD=PI/180.0
@@ -190,6 +192,10 @@ class FertType:
 # Data construct for residue (harvest residue, senesced matter, etc.)
 class ResidueType:
     CumResWt : float = 0.0                      #cumul. kg[dry matter]/ha
+    ResWt = np.zeros(NL, dtype=float)           #kg[dry matter]/ha/d
+    ResLig = np.zeros(NL, dtype=float)          #kg[lignin]/ha/d
+    CumResE = np.zeros(NELEM, dtype=float)      #cumulative kg[E]/ha
+    ResE = np.zeros((NL,NELEM), dtype=float) #kg[E]/ha/d (E=N,P,K,..)
 
 @dataclass
 # Data construct for Organic Matter Application data
