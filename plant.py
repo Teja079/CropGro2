@@ -17,6 +17,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
           NH4, NO3, SKi_Avail, SPi_AVAIL,SNOW, SOILPROP, SRFTEMP, ST, SW,
           TRWUP, WEATHER, YREND, YRPLT,  FLOODN):
 
+    from ModuleDefs import RunConstants as RC
 # C-----------------------------------------------------------------------
 # !     The following models are currently supported:
 # !         'CRGRO' - CROPGRO
@@ -64,7 +65,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #
 #       CHARACTER*1  MEEVP, RNMODE
 #       CHARACTER*6  ERRKEY
-#       PARAMETER (ERRKEY = 'PLANTS')
+    ERRKEY = 'PLANTS'
 #       CHARACTER*8  MODEL
 #       CHARACTER*78 MESSAGE(10)    !Up to 10 lines of text to be output
 #
@@ -94,7 +95,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #       REAL PAR, TAVG, TGROAV  !CHP 7/26/04 , TDAY
 #       REAL TGRO(TS)
 #
-# 	INTEGER, PARAMETER :: CanopyLayers=3
+    CanopyLayers = 3
 # 	REAL, DIMENSION(1:NumOfStalks,CanopyLayers) :: LFmntDEF
 # !     P model
 #       REAL, DIMENSION(NL) :: PUptake, SPi_AVAIL, FracRts
@@ -109,7 +110,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 # !      LOGICAL, PARAMETER :: OR_OUTPUT = .FALSE.
 #
 # !     Arrays which contain data for printing in SUMMARY.OUT file
-#       INTEGER, PARAMETER :: SUMNUM = 1
+    SUMNUM = 1
 #       CHARACTER*4, DIMENSION(SUMNUM) :: LABEL
 #       REAL, DIMENSION(SUMNUM) :: VALUE
 #
@@ -146,14 +147,14 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 
 # !***********************************************************************
 # !***********************************************************************
-    if DYNAMIC == RUNINIT:
+    if DYNAMIC == RC.RUNINIT:
 # !-----------------------------------------------------------------------
 # !     Non-CROPGRO crops can not use MEPHO = 'L' or MEEVP = 'Z' at
 # !       this time.  If Species files are modified for these options
 # !       in the future, we need to make this check on a crop by crop basis.
 # !     The plant routines do not use these codes, but the SPAM module
 # !       does and it will bomb when species parameters are not found.
-        if MODEL.find('CRGRO') <= 0 and model.find('PRFRM') <= 0 and ISWITCH.MEPHO == 'L':
+        if MODEL.find('CRGRO') <= 0 and MODEL.find('PRFRM') <= 0 and ISWITCH.MEPHO == 'L':
             ISWITCH.MEPHO = 'C'
 # !       Put ISWITCH data where it can be retreived
 # !         by other modules as needed.
@@ -169,7 +170,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #   120 FORMAT('option, which is not available for crop ', A2, '.')
 #   130 FORMAT('Canopy photosynthesis option will be used.')
 #
-        if MODEL.fine('CRGRO') <= 0 and MODEL.find('PRFRM') <= 0 and ISWITCH.MEEVP .== 'Z':
+        if MODEL.fine('CRGRO') <= 0 and MODEL.find('PRFRM') <= 0 and ISWITCH.MEEVP == 'Z':
 # !       Default to Priestly-Taylor potential evapotranspiration
             ISWITCH.MEEVP = 'R'
 # !       Put ISWITCH data where it can be retreived
@@ -241,7 +242,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #
 # !***********************************************************************
 # !***********************************************************************
-    elif DYNAMIC == SEASINIT:
+    elif DYNAMIC == RC.SEASINIT:
 # !-----------------------------------------------------------------------
 # !     If this is not a sequenced run, don't use any previously calculated
 # !       harvest residue.
@@ -283,7 +284,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #
 # !***********************************************************************
 # !***********************************************************************
-    elif DYNAMIC == RATE:
+    elif DYNAMIC == RC.RATE:
 # !-----------------------------------------------------------------------
         if CROP != 'FA' and CONTROL.YRDOY >= YRPLT and YRPLT != -99:
             SENESCE.ResWt  = 0.0
@@ -668,7 +669,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 # !***********************************************************************
 # !     Processing after calls to crop models:
 # !-----------------------------------------------------------------------
-    if DYNAMIC == SEASINIT:
+    if DYNAMIC == RC.SEASINIT:
 # !-----------------------------------------------------------------------
 # ! Zero the value of HARVRES composite variable here
 # !!!NOTE: At this time, the variable has already been used to
@@ -680,7 +681,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #
 # !***********************************************************************
 # !***********************************************************************
-    elif DYNAMIC == INTEGR:
+    elif DYNAMIC == RC.INTEGR:
 # !-----------------------------------------------------------------------
 # !     Set default canopy height upon emergence (or first day with
 # !       LAI.  Should actually set these defaults within each
@@ -691,7 +692,7 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #
 # !***********************************************************************
 # !***********************************************************************
-    elif DYNAMIC == SEASEND:
+    elif DYNAMIC == RC.SEASEND:
 # !-----------------------------------------------------------------------
 # !     Store Summary.out labels and values in arrays to send to
 # !     OPSUM routines for printing.  Integers are temporarily
@@ -821,8 +822,12 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 # ! YRPLT     Planting date (YYYYDDD)
 # !===========================================================================
 #
-# !===========================================================================
-#       SUBROUTINE READ_ASCE_KT(CONTROL, MEEVP)
+def READ_ASCE_KT(CONTROL, MEEVP):
+    import numpy as np
+    from ERROR import ERROR
+    from READS import FIND, IGNORE
+    from WARNING import WARNING
+    from ModuleDefs import PUT_Char
 # !     Generic routine to read evapotranspiration species parameters
 # !     KEP, EORATIO
 # !     TSKC, TKCBmax ASCE tall ref (50 cm alfalfa)
@@ -832,16 +837,15 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 #       External IGNORE, WARNING, ERROR, GETLUN, FIND
 #
 #       CHARACTER*1  BLANK, MEEVP
-#       PARAMETER (BLANK  = ' ')
-#
+    BLANK  = ' '
 #       CHARACTER*2 CROP
 #       CHARACTER*6 SECTION
 #       CHARACTER*6  ERRKEY
-#       PARAMETER (ERRKEY = 'IPASCE')
+    ERRKEY = 'IPASCE'
 #
 #       CHARACTER*12 FILEC
 #       CHARACTER*30 FILEIO
-#       CHARACTER*78 MSG(10)
+    MSG = np.full(11, '', dtype='U78')
 #       CHARACTER*80 PATHCR, CHAR
 #       CHARACTER*92 FILECC
 #
@@ -856,123 +860,165 @@ def PLANT(CONTROL, ISWITCH,EO, EOP, EOS, EP, ES, FLOODWAT, HARVFRAC,IRRAMT,
 # !     The components are copied into local variables for use here.
 #       TYPE (ControlType) CONTROL
 #
-#       IF (MEEVP .NE. 'S' .AND. MEEVP .NE. 'T') RETURN
+    if MEEVP not in ('S', 'T'):
+        return
 #
-#       NMSG = 0
+    NMSG = 0
 #
 # !-----------------------------------------------------------------------
 # !     Read file plus path for species file
 # !-----------------------------------------------------------------------
-#       FILEIO = CONTROL % FILEIO
-#       LUNIO  = CONTROL % LUNIO
-#       CROP   = CONTROL % CROP
-#       OPEN (LUNIO, FILE = FILEIO, STATUS = 'OLD', IOSTAT=ERR)
-#       IF (ERR .NE. 0) CALL ERROR(ERRKEY,ERR,FILEIO,0)
-#       READ(LUNIO,50,IOSTAT=ERR) FILEC, PATHCR ; LNUM = 7
-#    50 FORMAT(6(/),15X,A12,1X,A80)
-#       IF (ERR .NE. 0) CALL ERROR(ERRKEY,ERR,FILEIO,LNUM)
-#       CLOSE (LUNIO)
+    FILEIO = CONTROL.FILEIO
+    LUNIO  = CONTROL.LUNIO
+    CROP   = CONTROL.CROP
+    try:
+        LUNIO = open(FILEIO, "r")
+        ERR = 0
+    except OSError as e:
+        ERR = e.errno
+        ERROR(ERRKEY, ERR, FILEIO, 0)
+    try:
+        LUNIO = open(FILEIO, "r")
+        ERR = 0
+    except OSError as e:
+        ERR = e.errno
+        ERROR(ERRKEY, ERR, FILEIO, 0)
+    for _ in range(6):
+        LUNIO.readline()
+    LNUM = 6
+    line = LUNIO.readline()
+    LNUM += 1
+    try:
+        FILEC  = line[15:27].strip()
+        PATHCR = line[28:108].strip()
+        ERR = 0
+    except Exception:
+        ERR = 1
+        ERROR(ERRKEY, ERR, FILEIO, LNUM)
 #
 # !-----------------------------------------------------------------------
-#       IF (CROP .NE. 'FA') THEN
+    if CROP != "FA":
+        LNUM = 0
 # !       open species file
-#         LNUM = 0
-#         PATHL  = INDEX(PATHCR,BLANK)
-#         IF (PATHL .LE. 1) THEN
-#           FILECC = FILEC
-#         ELSE
-#           FILECC = PATHCR(1:(PATHL-1)) // FILEC
-#         ENDIF
-#         CALL GETLUN('FILEC', LUNCRP)
-#         OPEN (LUNCRP,FILE = FILECC, STATUS = 'OLD',IOSTAT=ERR)
-#         IF (ERR .NE. 0) CALL ERROR(ERRKEY,ERR,FILECC,0)
-#         LNUM = 0
-#
+        PATHL = PATHCR.find(" ") + 1
+        if PATHL <= 1:
+            FILECC = FILEC
+        else:
+            FILECC = PATHCR[:PATHL - 1] + FILEC
+        GETLUN('FILEC', LUNCRP)
+        try:
+            LUNCRP = open(FILECC, "r")
+            ERR    = 0
+        except OSError as e:
+            ERR = e.errno
+        if ERR != 0:
+            ERROR(ERRKEY, ERR, FILECC, 0)
+        LNUM = 0
 # !       ***** READ ASCE EVAPOTRANSPIRATION PARAMETERS *****
-#         SECTION = '!*EVAP'
-#         CALL FIND(LUNCRP, SECTION, LINC, FOUND) ; LNUM = LNUM + LINC
-#         IF (FOUND .EQ. 0) THEN
-#           NMSG = NMSG + 1
-#           MSG(NMSG) = "*EVAP section missing from species file."
+        SECTION = '!*EVAP'
+        FOUND, LINC = FIND(LUNCRP, SECTION)
+        LNUM += LINC
+        if FOUND==0:
+            NMSG += 1
+            MSG[NMSG]=("*EVAP section missing from species file.")
 #           GOTO 100
-#         ELSE
-#           CALL IGNORE(LUNCRP,LNUM,ISECT,CHAR)
+        else:
+            ISECT,CHAR=IGNORE(LUNCRP,LNUM)
 #           !KEP and EORATIO are not used in ASCE PET method,
 #           !but must be read in prior to ASCE parameters.
-#           READ(CHAR,'(2F6.0)',IOSTAT=ERR) KEP, EORATIO
-#           IF (ERR .NE. 0) THEN
-#             NMSG = NMSG + 1
-#             MSG(NMSG)="Error reading KEP and EORATIO."
-#           ENDIF
-#         ENDIF
+            try:
+                KEP     = float(CHAR[0:6])
+                EORATIO = float(CHAR[6:12])
+                ERR = 0
+            except Exception:
+                ERR = 1
+            if ERR != 0:
+                  NMSG = NMSG + 1
+                  MSG[NMSG] = "Error reading KEP and EORATIO."
 #
 # !       Read short reference crop parameters
-#         CALL IGNORE(LUNCRP,LNUM,ISECT,CHAR)
-#         IF(ISECT .NE. 1) CALL ERROR (ERRKEY,1,FILECC,LNUM)
-#         READ(CHAR,'(2F6.0)',IOSTAT=ERR) SSKC, SKCBMAX
-#         IF (ERR .NE. 0) THEN
-#           NMSG = NMSG + 1
-#           MSG(NMSG)="Error reading SSKC, SKCBMAX for ASCE PET method."
+        ISECT,CHAR=IGNORE(LUNCRP,LNUM)
+        if ISECT != 1: ERROR(ERRKEY, 1, FILECC, LNUM)
+        try:
+            SSKC    = float(CHAR[0:6])
+            SKCBMAX = float(CHAR[6:12])
+            ERR = 0
+        except ValueError:
+            ERR = 1
+        #         IF (ERR .NE. 0) THEN
+        if ERR != 0:
+            NMSG = NMSG + 1
+            MSG[NMSG] = "Error reading SSKC, SKCBMAX for ASCE PET method."
 #         ENDIF
 #
 # !       Read tall reference crop parameters
-#         CALL IGNORE(LUNCRP,LNUM,ISECT,CHAR)
-#         IF(ISECT .NE. 1) CALL ERROR (ERRKEY,1,FILECC,LNUM)
-#         READ(CHAR,'(2F6.0)',IOSTAT=ERR) TSKC, TKCBMAX
-#         IF (ERR .NE. 0) THEN
-#           NMSG = NMSG + 1
-#           MSG(NMSG)="Error reading TSKC, TKCBMAX for ASCE PET method."
-#         ENDIF
+        ISECT,CHAR=IGNORE(LUNCRP,LNUM)
+        if ISECT != 1: ERROR(ERRKEY, 1, FILECC, LNUM)
+        try:
+            TSKC    = float(CHAR[0:6])
+            TKCBMAX = float(CHAR[6:12])
+            ERR = 0
+        except ValueError:
+            ERR = 1
+        if ERR != 0:
+            NMSG = NMSG + 1
+            MSG[NMSG] = "Error reading TSKC, TKCBMAX for ASCE PET method."
 #
-#         CLOSE (LUNCRP)
+        LUNCRP.close()
 #
 # !       Check for values with valid ranges.
-#         IF (MEEVP .EQ. 'S') THEN
-#           IF (SSKC .LT. 0.30 .OR. SSKC .GT. 1.0) THEN
-#             NMSG = NMSG + 1
-#             MSG(NMSG) = "SSKC for ASCE PET method is out of range."
+        if MEEVP == 'S':
+            if SSKC < 0.30 or SSKC > 1.0:
+                NMSG = NMSG + 1
+                MSG[NMSG] = "SSKC for ASCE PET method is out of range."
 #           ENDIF
-#           IF (SKCBMAX .LT. 0.25 .OR. SKCBMAX .GT. 1.5) THEN
-#             NMSG = NMSG + 1
-#             MSG(NMSG) = "SKCBMAX for ASCE PET method is out of range."
-#           ENDIF
-#         ENDIF
-#
-#         IF (MEEVP .EQ. 'T') THEN
-#           IF (TSKC .LT. 0.30 .OR. TSKC .GT. 1.0) THEN
-#             NMSG = NMSG + 1
-#             MSG(NMSG) = "TSKC for ASCE PET method is out of range."
-#           ENDIF
-#           IF (TKCBMAX .LT. 0.25 .OR. TKCBMAX .GT. 1.5) THEN
-#             NMSG = NMSG + 1
-#             MSG(NMSG) = "TKCBMAX for ASCE PET method is out of range."
+            if SKCBMAX < 0.25 or SKCBMAX > 1.5:
+                NMSG = NMSG + 1
+                MSG[NMSG] = "SKCBMAX for ASCE PET method is out of range."
 #           ENDIF
 #         ENDIF
 #
-#       ELSE
+        if MEEVP == 'T':
+            if TSKC < 0.30 or TSKC > 1.0:
+                NMSG = NMSG + 1
+                MSG[NMSG] = "TSKC for ASCE PET method is out of range."
+#           ENDIF
+            if TKCBMAX < 0.25 or TKCBMAX > 1.5:
+                NMSG = NMSG + 1
+                MSG[NMSG] = "TKCBMAX for ASCE PET method is out of range."
+#           ENDIF
+#         ENDIF
+#
+    else:
 # !       If fallow, use minimum values
-#         SSKC    = 0.30
-#         SKCBMAX = 0.25
-#         TSKC    = 0.30
-#         TKCBMAX = 0.25
-#       ENDIF
-#
-#  100  IF (NMSG > 0) THEN
-#         MSG(NMSG+1) ="ASCE PET method may not be valid for this crop."
-#         MSG(NMSG+2) = "Model will stop."
-#         CALL WARNING(NMSG+2, ERRKEY, MSG)
-#         CALL ERROR(ERRKEY,1,FILECC,LNUM)
+        SSKC    = 0.30
+        SKCBMAX = 0.25
+        TSKC    = 0.30
+        TKCBMAX = 0.25
+
+    if NMSG > 0:
+        MSG[NMSG + 1] = "ASCE PET method may not be valid for this crop."
+        MSG[NMSG + 2] = "Model will stop."
+        WARNING(NMSG + 2, ERRKEY, MSG)
+        ERROR(ERRKEY, 1, FILECC, LNUM)
 #       ENDIF
 #
 # !     Store the values for retrieval in SPAM (actually in PET.for).
-#       IF (MEEVP.EQ.'S') THEN
-#         CALL PUT('SPAM', 'SKC', SSKC)
-#         CALL PUT('SPAM', 'KCBMAX', SKCBMAX)
-#       ELSEIF (MEEVP.EQ.'T') THEN
-#         CALL PUT('SPAM', 'SKC', TSKC)
-#         CALL PUT('SPAM', 'KCBMAX', TKCBMAX)
-#       ENDIF
+    if MEEVP == 'S':
+        PUT_Char('SPAM', 'SKC',    SSKC)
+        PUT_Char('SPAM', 'KCBMAX', SKCBMAX)
+    #       ELSEIF (MEEVP.EQ.'T') THEN
+    elif MEEVP == 'T':
+        PUT_Char('SPAM', 'SKC',    TSKC)
+        PUT_Char('SPAM', 'KCBMAX', TKCBMAX)
 #
-#       RETURN
+    return MEEVP
 #       END SUBROUTINE READ_ASCE_KT
+# !===========================================================================
+
+
+# Test Drive READ_ASCE_KT
+# CONTROL=
+# MEEVP='R'
+# print(READ_ASCE_KT(CONTROL, MEEVP))
 # !===========================================================================
