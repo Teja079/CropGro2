@@ -355,6 +355,28 @@ def PUT_Integer(ModuleName, VarName, Value):
         WARNING(2, 'PUT_Integer', MSG)
     return
 
+def PUT_float(ModuleName, VarName, Value):
+    ERR = False
+    from WARNING import WARNING
+
+    match ModuleName:
+        case 'SPAM':
+            match VarName:
+                case 'AGEFAC': SAVE_data.SPAM.AGEFAC = Value
+                case 'PG' : SAVE_data.SPAM.PG = Value
+                case _:
+                    ERR = True
+        case _:
+            ERR = True
+
+    if ERR:
+        MSG = [None] * 2
+        MSG[0] = f"Error transferring variable: {VarName} in {ModuleName}"
+        MSG[1] = 'Value not saved! Errors may result.'
+        WARNING(2, 'PUT_Float', MSG)
+
+    return Value
+
 def PUT_OUTPUT(OUTPUT_arg):
     SAVE_data.OUTPUT = OUTPUT_arg
 
