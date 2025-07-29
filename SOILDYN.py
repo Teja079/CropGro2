@@ -30,7 +30,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
     f90 = ff.FortranRecordReader('(/,F6.0,A200)')
     f91 = ff.FortranRecordReader('F6.0,A200')
     f92 = ff.FortranRecordReader('(20(F6.0))')
-    f100 = ff.FortranRecordReader('8X, 3 (1X, F5.1')
+    f100 = ff.FortranRecordReader('8X, 3 (1X, F5.1)')
 
 #       IMPLICIT NONE
 #       EXTERNAL ERROR, FIND, WARNING, INFO, TEXTURECLASS, SOILLAYERCLASS,
