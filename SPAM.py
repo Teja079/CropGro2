@@ -14,6 +14,10 @@
 def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
          PORMIN, RLV, RWUMX, SOILPROP, SW, SWDELTS, UH2O, WEATHER, WINF,
          XHLAI, XLAI,FLOODWAT, SWDELTU):
+    from ROOTWU import ROOTWU
+    from ETPHOT import ETPHOT
+    import numpy as np
+    from ModuleDefs import NL
 # !-----------------------------------------------------------------------
 #       USE ModuleDefs
 #       USE ModuleData
@@ -46,6 +50,7 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
 #      &    SAT(NL), ST(NL), SW(NL), SW_AVAIL(NL), !SWAD(NL),
 #      &    SWDELTS(NL), SWDELTU(NL), SWDELTX(NL), UPFLOW(NL)
 #       REAL ES_LYR(NL)
+    ST = np.zeros(NL, dtype=float)
 #
 # !     Root water uptake computed by some plant routines (optional)
 #       REAL UH2O(NL)
@@ -361,7 +366,7 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
             #    (MEPHO = 'L' and MEEVP <> 'Z')
             #or for both photosynthesis and evapotranspiration
             #   (MEPHO = 'L' and MEEVP = 'Z').
-            EOP, EP, ES, RWU, TRWUP = ETPHOT(CONTROL, ISWITCH,PORMIN, PSTRES1,
+                EOP, EP, ES, RWU, TRWUP = ETPHOT(CONTROL, ISWITCH,PORMIN, PSTRES1,
                                              RLV, RWUMX, SOILPROP, ST, SW,WEATHER, XLAI)
 # -----------------------------------------------------------------------
 #        ACTUAL ROOT WATER EXTRACTION
