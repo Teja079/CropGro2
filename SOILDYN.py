@@ -21,7 +21,8 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 
     f60 = ff.FortranRecordReader('1X,A10, 2X, A11,1X,A5,1X,F5.0,1X,A50')
     f70 = ff.FortranRecordReader('41X,A50')
-    f80 = ff.FortranRecordReader('7X,F5.2,1X,F5.1,1X,F5.2,1X,F5.0,2(1X,F5.2),7X,A5,12X,F6.0')
+    # f80 = ff.FortranRecordReader('7X,F5.2,1X,F5.1,1X,F5.2,1X,F5.0,2(1X,F5.2),7X,A5,12X,F6.0')
+    f80 = ff.FortranRecordReader('7X,F5.2,1X,F5.1,1X,F5.2,1X,F5.0,2(1X,F5.2),7X,A5')
     f85 = ff.FortranRecordReader('F6.0,6X,A200')
     f86 = ff.FortranRecordReader('15F6.0')
     f87 = ff.FortranRecordReader('/,F6.0,A200')
