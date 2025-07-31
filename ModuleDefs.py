@@ -29,6 +29,9 @@ STDPATH = "C:\\DSSAT48\\"
 
 NOHEADER = {}
 
+VPDFPHR = np.zeros(TS, dtype=float)               # Hourly VPD factor, 0-1
+EOPH = np.zeros(TS, dtype=float)                  # Hourly potential transpiration
+
 #Global parameters for control
 @dataclass(frozen=True)
 class RunConstants:
@@ -422,7 +425,7 @@ def GET_Char(ModuleName, VarName, Value):
         WARNING(2, 'GET_Integer', MSG)
     return
 
-def GET_float(ModuleName, VarName, Value):
+def GET_float(ModuleName, VarName):
     match ModuleName:
         case 'PLANT':
             match VarName:
@@ -435,6 +438,34 @@ def GET_float(ModuleName, VarName, Value):
                 case 'RNITP' : Value = SAVE_data.PLANT.RNITP
                 case 'SLAAD' : Value = SAVE_data.PLANT.SLAAD
                 case 'XPOD'  : Value = SAVE_data.PLANT.XPOD
+                case _: ERR = True
+        case 'SPAM':
+            match VarName:
+                case 'AGEFAC': Value = SAVE_data.SPAM.AGEFAC
+                case 'PG':     Value = SAVE_data.SPAM.PG
+                case 'CEF':    Value = SAVE_data.SPAM.CEF
+                case 'CEM':    Value = SAVE_data.SPAM.CEM
+                case 'CEO':    Value = SAVE_data.SPAM.CEO
+                case 'CEP':    Value = SAVE_data.SPAM.CEP
+                case 'CES':    Value = SAVE_data.SPAM.CES
+                case 'CET':    Value = SAVE_data.SPAM.CET
+                case 'CEVAP':  Value = SAVE_data.SPAM.CEVAP
+                case 'EF':     Value = SAVE_data.SPAM.EF
+                case 'EM':     Value = SAVE_data.SPAM.EM
+                case 'EO':     Value = SAVE_data.SPAM.EO
+                case 'EP':     Value = SAVE_data.SPAM.EP
+                case 'ES':     Value = SAVE_data.SPAM.ES
+                case 'ET':     Value = SAVE_data.SPAM.ET
+                case 'EOP':    Value = SAVE_data.SPAM.EOP
+                case 'EVAP':   Value = SAVE_data.SPAM.EVAP
+                case 'REFET':  Value = SAVE_data.SPAM.REFET
+                case 'SKC':    Value = SAVE_data.SPAM.SKC
+                case 'KCBMAX': Value = SAVE_data.SPAM.KCBMAX
+                case 'KCB':    Value = SAVE_data.SPAM.KCB
+                case 'KE':     Value = SAVE_data.SPAM.KE
+                case 'KC':     Value = SAVE_data.SPAM.KC
+                case 'PHSV':   Value = SAVE_data.SPAM.PHSV
+                case 'PHTV':   Value = SAVE_data.SPAM.PHTV
                 case _: ERR = True
     return Value
 
