@@ -303,26 +303,32 @@ def PUT_Char(ModuleName, VarName, Value):
     from WARNING import WARNING
     MSG = []
     ERR = False
-    if ModuleName == 'FIELD' :
-        if VarName == 'CXCRD' :
-            SAVE_data.WEATH.CXCRD = Value
-        elif VarName == 'CYCRD' :
-            SAVE_data.WEATH.CYCRD = Value
-        elif VarName == 'CELEV':
-            SAVE_data.WEATH.CELEV = Value
-        else:
-            ERR = True
 
-    if ModuleName == 'WEATHER':
-        if VarName == 'WSTA' :
-            SAVE_data.WEATH.WSTAT = Value
-        else:
-            ERR = True
+    match ModuleName:
+        case 'WEATHER':
+            match VarName:
+                case 'WSTA' : SAVE_data.WEATH.WSTAT  = Value
+                case _: ERR = True
+
+        case 'FIELD':
+            match VarName:
+                case 'CXCRD' : SAVE_data.WEATH.CXCRD = Value
+                case 'CYCRD' : SAVE_data.WEATH.CYCRD = Value
+                case 'CELEV' : SAVE_data.WEATH.CELEV = Value
+                case _: ERR = True
+
+        case 'PLANT':
+            match VarName:
+                case 'iSTNAME' : SAVE_data.PLANT.iSTNAME = Value
+                case _: ERR = True
+        case _: ERR = True
 
     if ERR:
         MSG[1] ='Error transferring variable'
         MSG[2] ='Value not saved! Errors may result.'
         WARNING(2, 'PUT_Integer',MSG)
+
+    return Value
 
 def Put_CONTROL (CONTROL_arg):
     #CONTROL_arg = ControlType()
