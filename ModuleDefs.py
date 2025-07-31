@@ -39,6 +39,7 @@ class RunConstants:
     INIT : int = 2
     SEASINIT : int = 2
     RATE : int = 3
+    EMERG : int = 3  #Used for some plant processes.
     INTEGR : int = 4
     OUTPUT : int = 5
     SEASEND : int = 6
