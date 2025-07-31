@@ -42,7 +42,7 @@ rvstge = vstage = None
 
 # _____________________Phenol subroutine____________________
 
-def phenol(
+def PHENOL(
     control, iswitch, dayl, nstres, pstres2,
     st, sw, swfac, tgro, tmin, turfac, xpod, yrplt,
     dlayr, dul, ll, nlayr, sat
