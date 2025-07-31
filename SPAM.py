@@ -16,8 +16,10 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
          XHLAI, XLAI,FLOODWAT, SWDELTU):
     from ROOTWU import ROOTWU
     from ETPHOT import ETPHOT
+    from TRANS import TRANS
     import numpy as np
-    from ModuleDefs import NL
+    from ModuleDefs import NL, TS, RunConstants as RC, PUT_Char
+    from SPSUBS import OPSPAM, XTRACT
 # !-----------------------------------------------------------------------
 #       USE ModuleDefs
 #       USE ModuleData
@@ -39,18 +41,39 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
 #
 #       REAL CANHT, CO2, SRAD, TAVG,
 #      &    TMAX, TMIN, WINDSP, XHLAI, XLAI
-#       REAL CEF, CEM, CEO, CEP, CES, CET, CEVAP
-#       REAL EF, EM, EO, EP, ES, ET, EVAP
-#       REAL TRWU, TRWUP, U
-#       REAL EOS, EOP, WINF, MSALB, ET_ALB
-#       REAL XLAT, TAV, TAMP, SRFTEMP
+#       REAL
+#       REAL  EO, ,
+    ET : float = 0.0
+    ES : float = 0.0
+    CES : float = 0.0
+    CET : float = 0.0
+    CEVAP : float = 0.0
+    CEP : float = 0.0
+    CEO : float = 0.0
+    CEM : float = 0.0
+    CEF : float = 0.0
+    EP : float = 0.0
+    EM : float = 0.0
+    EF : float = 0.0
+    EO : float = 0.0
+    EVAP : float = 0.0
+    TRWU : float = 0.0
+    EOS : float = 0.0
+    EOP : float = 0.0
+    TRWUP : float = 0.0
+    SRFTEMP : float = 0.0
+    #       REAL  , U
+#       REAL WINF, MSALB, ET_ALB
+#       REAL XLAT, TAV, TAMP,
 #       REAL EORATIO, KSEVAP, KTRANS
 #
 #       REAL DLAYR(NL), DUL(NL), LL(NL), RLV(NL), RWU(NL),
-#      &    SAT(NL), ST(NL), SW(NL), SW_AVAIL(NL), !SWAD(NL),
-#      &    SWDELTS(NL), SWDELTU(NL), SWDELTX(NL), UPFLOW(NL)
-#       REAL ES_LYR(NL)
+#      &    SAT(NL), ST(NL), SW(NL),  !SWAD(NL),
+#      &    SWDELTS(NL), SWDELTU(NL), SWDELTX(NL),
+    ES_LYR = np.zeros(NL, dtype=float)
+    SW_AVAIL = np.zeros(NL, dtype=float)
     ST = np.zeros(NL, dtype=float)
+    UPFLOW = np.zeros(NL, dtype=float)
 #
 # !     Root water uptake computed by some plant routines (optional)
 #       REAL UH2O(NL)
@@ -64,7 +87,7 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
 # !     P Stress on photosynthesis
 #       REAL PSTRES1
 # !     Hourly transpiration for MEEVP=H
-#       REAL, DIMENSION(TS)    :: ET0
+    ET0 = np.zeros(TS, dtype=float)
 #
 # !-----------------------------------------------------------------------
 # !     Define constructed variable types based on definitions in
@@ -112,23 +135,23 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
 # !***********************************************************************
 # !     Run Initialization - Called once per simulation
 # !***********************************************************************
-    if DYNAMIC == RUNINIT:
+    if DYNAMIC == RC.RUNINIT:
 # !-----------------------------------------------------------------------
         if MEPHO == 'L' or MEEVP == 'Z':
             EOP, EP, ES, RWU, TRWUP = ETPHOT(CONTROL, ISWITCH,PORMIN, PSTRES1,
                                              RLV, RWUMX, SOILPROP, ST, SW,WEATHER, XLAI)
 
 #      Initialize ASCE dual KC ET variables (KRT)
-            PUT('SPAM', 'REFET', -99.0)
-            PUT('SPAM', 'KCB', -99.0)
-            PUT('SPAM', 'KE', -99.0)
-            PUT('SPAM', 'KC', -99.0)
+            PUT_Char('SPAM', 'REFET', -99.0)
+            PUT_Char('SPAM', 'KCB', -99.0)
+            PUT_Char('SPAM', 'KE', -99.0)
+            PUT_Char('SPAM', 'KC', -99.0)
 #
 #***********************************************************************
 #***********************************************************************
 #     Seasonal initialization - run once per season
 #***********************************************************************
-    elif DYNAMIC == SEASINIT:
+    elif DYNAMIC == RC.SEASINIT:
 #-----------------------------------------------------------------------
         EF   = 0.0
         CEF  = 0.0
@@ -167,7 +190,7 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
      #    END SELECT
 #      ---------------------------------------------------------
         if MEEVP != 'Z':
-            RWU, TRWUP = ROOTWU(SEASINIT,DLAYR, LL, NLAYR,
+            RWU, TRWUP = ROOTWU(RC.SEASINIT,DLAYR, LL, NLAYR,
                                 PORMIN, RLV, RWUMX, SAT, SW)
 
 # !       Initialize soil evaporation variables
@@ -200,25 +223,25 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
                    ES_LYR, SOILPROP)
 #
 #      Transfer data to storage routine
-            PUT('SPAM', 'CEF', CEF)
-            PUT('SPAM', 'CEM', CEM)
-            PUT('SPAM', 'CEO', CEO)
-            PUT('SPAM', 'CEP', CEP)
-            PUT('SPAM', 'CES', CES)
-            PUT('SPAM', 'CET', CET)
-            PUT('SPAM', 'CEVAP',CEVAP)
-            PUT('SPAM', 'EF',  EF)
-            PUT('SPAM', 'EM',  EM)
-            PUT('SPAM', 'EO',  EO)
-            PUT('SPAM', 'EP',  EP)
-            PUT('SPAM', 'ES',  ES)
-            PUT('SPAM', 'ET',  ET)
+            PUT_Char('SPAM', 'CEF', CEF)
+            PUT_Char('SPAM', 'CEM', CEM)
+            PUT_Char('SPAM', 'CEO', CEO)
+            PUT_Char('SPAM', 'CEP', CEP)
+            PUT_Char('SPAM', 'CES', CES)
+            PUT_Char('SPAM', 'CET', CET)
+            PUT_Char('SPAM', 'CEVAP',CEVAP)
+            PUT_Char('SPAM', 'EF',  EF)
+            PUT_Char('SPAM', 'EM',  EM)
+            PUT_Char('SPAM', 'EO',  EO)
+            PUT_Char('SPAM', 'EP',  EP)
+            PUT_Char('SPAM', 'ES',  ES)
+            PUT_Char('SPAM', 'ET',  ET)
 #
 # !***********************************************************************
 # !***********************************************************************
 # !     DAILY RATE CALCULATIONS
 # !***********************************************************************
-    elif DYNAMIC == RATE:
+    elif DYNAMIC == RC.RATE:
 # !-----------------------------------------------------------------------
         SWDELTX = 0.0
 #     ---------------------------------------------------------
@@ -250,7 +273,7 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
 #         Calculate potential root water uptake rate for each soil layer
 #         and total potential water uptake rate.
             if XHLAI > 0.0:
-                RWU, TRWUP = ROOTWU(RATE,DLAYR, LL, NLAYR, PORMIN, RLV,
+                RWU, TRWUP = ROOTWU(RC.RATE,DLAYR, LL, NLAYR, PORMIN, RLV,
                                     RWUMX, SAT, SW)
             else:
                 RWU   = 0.0
@@ -345,7 +368,7 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
 # !         Potential transpiration - model dependent
 # !-----------------------------------------------------------------------
         if XHLAI > 1.E-6:
-            EOP = TRANS(RATE, MEEVP,CO2, CROP, EO, ET0, EVAP, KTRANS,WINDSP, XHLAI,WEATHER)
+            EOP = TRANS(RC.RATE, MEEVP,CO2, CROP, EO, ET0, EVAP, KTRANS,WINDSP, XHLAI,WEATHER)
         else:
             EOP = 0.0
 # !-----------------------------------------------------------------------
@@ -388,20 +411,20 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
         FLOODWAT.EF = EF
 #
 #     Transfer data to storage routine
-        PUT('SPAM', 'EF',  EF)
-        PUT('SPAM', 'EM',  EM)
-        PUT('SPAM', 'EO',  EO)
-        PUT('SPAM', 'EP',  EP)
-        PUT('SPAM', 'ES',  ES)
-        PUT('SPAM', 'EOP', EOP)
-        PUT('SPAM', 'EVAP',EVAP)
-        PUT('SPAM', 'UH2O',RWU)
+        PUT_Char('SPAM', 'EF',  EF)
+        PUT_Char('SPAM', 'EM',  EM)
+        PUT_Char('SPAM', 'EO',  EO)
+        PUT_Char('SPAM', 'EP',  EP)
+        PUT_Char('SPAM', 'ES',  ES)
+        PUT_Char('SPAM', 'EOP', EOP)
+        PUT_Char('SPAM', 'EVAP',EVAP)
+        PUT_Char('SPAM', 'UH2O',RWU)
 #
 # !***********************************************************************
 # !***********************************************************************
 # !     DAILY INTEGRATION
 # !***********************************************************************
-    elif DYNAMIC == INTEGR:
+    elif DYNAMIC == RC.INTEGR:
 # !-----------------------------------------------------------------------
         if ISWWAT == 'Y':
 #        Perform daily summation of water balance variables.
@@ -420,20 +443,20 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
                    SRAD,ES_LYR, SOILPROP)
 #
 #      Transfer data to storage routine
-        PUT('SPAM', 'CEF', CEF)
-        PUT('SPAM', 'CEM', CEM)
-        PUT('SPAM', 'CEO', CEO)
-        PUT('SPAM', 'CEP', CEP)
-        PUT('SPAM', 'CES', CES)
-        PUT('SPAM', 'CET', CET)
-        PUT('SPAM', 'ET',  ET)
-        PUT('SPAM', 'CEVAP', CEVAP)
+        PUT_Char('SPAM', 'CEF', CEF)
+        PUT_Char('SPAM', 'CEM', CEM)
+        PUT_Char('SPAM', 'CEO', CEO)
+        PUT_Char('SPAM', 'CEP', CEP)
+        PUT_Char('SPAM', 'CES', CES)
+        PUT_Char('SPAM', 'CET', CET)
+        PUT_Char('SPAM', 'ET',  ET)
+        PUT_Char('SPAM', 'CEVAP', CEVAP)
 #
 # !***********************************************************************
 # !***********************************************************************
 # !     OUTPUT - daily output
 # !***********************************************************************
-    elif DYNAMIC == OUTPUT:
+    elif DYNAMIC == RC.OUTPUT:
 # C-----------------------------------------------------------------------
 # !     Flood water evaporation can be modified by Paddy_Mgmt routine.
         EF = FLOODWAT.EF
@@ -466,7 +489,7 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
 # ***********************************************************************
 #      SEASEND - seasonal output
 # ***********************************************************************
-    elif DYNAMIC == SEASEND:
+    elif DYNAMIC == RC.SEASEND:
 # -----------------------------------------------------------------------
         OPSPAM(CONTROL, ISWITCH, FLOODWAT, TRWU,CEF, CEM, CEO, CEP, CES,
                CET, CEVAP, EF, EM,EO, EOP, EOS, EP, ES, ET, TMAX, TMIN,
@@ -491,14 +514,14 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
                                              RLV, RWUMX, SOILPROP, ST, SW,WEATHER, XLAI)
 
 #     Transfer data to storage routine
-        PUT('SPAM', 'CEF', CEF)
-        PUT('SPAM', 'CEM', CEM)
-        PUT('SPAM', 'CEO', CEO)
-        PUT('SPAM', 'CEP', CEP)
-        PUT('SPAM', 'CES', CES)
-        PUT('SPAM', 'CET', CET)
-        PUT('SPAM', 'ET',  ET)
-        PUT('SPAM', 'CEVAP', CEVAP)
+        PUT_Char('SPAM', 'CEF', CEF)
+        PUT_Char('SPAM', 'CEM', CEM)
+        PUT_Char('SPAM', 'CEO', CEO)
+        PUT_Char('SPAM', 'CEP', CEP)
+        PUT_Char('SPAM', 'CES', CES)
+        PUT_Char('SPAM', 'CET', CET)
+        PUT_Char('SPAM', 'ET',  ET)
+        PUT_Char('SPAM', 'CEVAP', CEVAP)
 #
 # !      CALL OPSTRESS(CONTROL, ET=ET, EP=EP)
 #
@@ -512,103 +535,102 @@ def SPAM(CONTROL, ISWITCH,CANHT, EORATIO, KSEVAP, KTRANS, MULCH, PSTRES1,
 #       END SUBROUTINE SPAM
 #
     return (EO,EOP,EOS,EP,ES,RWU,SRFTEMP,ST,SWDELTX,TRWU,TRWUP,UPFLOW)
-# !-----------------------------------------------------------------------
-# !     VARIABLE DEFINITIONS: (updated 12 Feb 2004)
-# !-----------------------------------------------------------------------
-# ! CANHT       Canopy height (m)
-# ! CEF         Cumulative seasonal evaporation from floodwater surface (mm)
-# ! CEM         Cumulative evaporation from surface mulch layer (mm)
-# ! CEO         Cumulative potential evapotranspiration (mm)
-# ! CEP         Cumulative transpiration (mm)
-# ! CES         Cumulative evaporation (mm)
-# ! CET         Cumulative evapotranspiration (mm)
-# ! CLOUDS      Relative cloudiness factor (0-1)
-# ! CO2         Atmospheric carbon dioxide concentration
-# !              (µmol[CO2] / mol[air])
-# ! CONTROL     Composite variable containing variables related to control
-# !               and/or timing of simulation.    See Appendix A.
-# ! CROP        Crop identification code
-# ! DLAYR(L)    Thickness of soil layer L (cm)
-# ! DUL(L)      Volumetric soil water content at Drained Upper Limit in soil
-# !               layer L (cm3[water]/cm3[soil])
-# ! EF          Evaporation rate from flood surface (mm / d)
-# ! EM          Evaporation rate from surface mulch layer (mm / d)
-# ! EO          Potential evapotranspiration rate (mm/d)
-# ! EOP         Potential plant transpiration rate (mm/d)
-# ! EORATIO     Ratio of increase in potential evapotranspiration with
-# !               increase in LAI (up to LAI=6.0) for use with FAO-56 Penman
-# !               reference potential evapotranspiration.
-# ! EOS         Potential rate of soil evaporation (mm/d)
-# ! EP          Actual plant transpiration rate (mm/d)
-# ! ES          Actual soil evaporation rate (mm/d)
-# ! ET          Actual evapotranspiration rate (mm/d)
-# ! FLOOD       Current depth of flooding (mm)
-# ! FLOODWAT    Composite variable containing information related to bund
-# !               management. Structure of variable is defined in
-# !               ModuleDefs.for.
-# ! IDETW       Y=detailed water balance output, N=no detailed output
-# ! ISWITCH     Composite variable containing switches which control flow of
-# !               execution for model.  The structure of the variable
-# !               (SwitchType) is defined in ModuleDefs.for.
-# ! ISWWAT      Water simulation control switch (Y or N)
-# ! KSEVAP      Light extinction coefficient used for computation of soil
-# !               evaporation
-# ! KTRANS      Light extinction coefficient used for computation of plant
-# !               transpiration
-# ! LL(L)       Volumetric soil water content in soil layer L at lower limit
-# !              (cm3 [water] / cm3 [soil])
-# ! MEEVP       Method of evapotranspiration ('P'=Penman,
-# !               'R'=Priestly-Taylor, 'Z'=Zonal)
-# ! MEPHO       Method for photosynthesis computation ('C'=Canopy or daily,
-# !               'L'=hedgerow or hourly)
-# ! NLAYR       Actual number of soil layers
-# ! PORMIN      Minimum pore space required for supplying oxygen to roots for
-# !               optimal growth and function (cm3/cm3)
-# ! RLV(L)      Root length density for soil layer L (cm[root] / cm3[soil])
-# ! RWU(L)      Root water uptake from soil layer L (cm/d)
-# ! RWUMX       Maximum water uptake per unit root length, constrained by
-# !               soil water (cm3[water] / cm [root])
-# ! MSALB       Soil albedo with mulch and soil water effects (fraction)
-# ! SAT(L)      Volumetric soil water content in layer L at saturation
-# !              (cm3 [water] / cm3 [soil])
-# ! SOILPROP    Composite variable containing soil properties including bulk
-# !               density, drained upper limit, lower limit, pH, saturation
-# !               water content.  Structure defined in ModuleDefs.
-# ! SRAD        Solar radiation (MJ/m2-d)
-# ! SRFTEMP     Temperature of soil surface litter (°C)
-# ! ST(L)       Soil temperature in soil layer L (°C)
-# ! SUMES1      Cumulative soil evaporation in stage 1 (mm)
-# ! SUMES2      Cumulative soil evaporation in stage 2 (mm)
-# ! SW(L)       Volumetric soil water content in layer L
-# !              (cm3 [water] / cm3 [soil])
-# ! SW_AVAIL(L) Soil water content in layer L available for evaporation,
-# !               plant extraction, or movement through soil
-# !               (cm3 [water] / cm3 [soil])
-# ! SWDELTS(L)  Change in soil water content due to drainage in layer L
-# !              (cm3 [water] / cm3 [soil])
-# ! SWDELTU(L)  Change in soil water content due to evaporation and/or upward
-# !               flow in layer L (cm3 [water] / cm3 [soil])
-# ! SWDELTX(L)  Change in soil water content due to root water uptake in
-# !               layer L (cm3 [water] / cm3 [soil])
-# ! T           Number of days into Stage 2 evaporation (WATBAL); or time
-# !               factor for hourly temperature calculations
-# ! TA          Daily normal temperature (°C)
-# ! TAMP        Amplitude of temperature function used to calculate soil
-# !               temperatures (°C)
-# ! TAV         Average annual soil temperature, used with TAMP to calculate
-# !               soil temperature. (°C)
-# ! TAVG        Average daily temperature (°C)
-# ! TMAX        Maximum daily temperature (°C)
-# ! TMIN        Minimum daily temperature (°C)
-# ! TRWU        Actual daily root water uptake over soil profile (cm/d)
-# ! TRWUP       Potential daily root water uptake over soil profile (cm/d)
-# ! U           Evaporation limit (cm)
-# ! WINDSP      Wind speed at 2m (km/d)
-# ! WINF        Water available for infiltration - rainfall minus runoff plus
-# !               net irrigation (mm / d)
-# ! XHLAI       Healthy leaf area index (m2[leaf] / m2[ground])
-# ! XLAT        Latitude (deg.)
-# !-----------------------------------------------------------------------
-# !     END SUBROUTINE SPAM
-# !-----------------------------------------------------------------------
-#
+# ----------------------------------------------------------------------
+#     VARIABLE DEFINITIONS: (updated 12 Feb 2004)
+# ----------------------------------------------------------------------
+# CANHT       Canopy height (m)
+# CEF         Cumulative seasonal evaporation from floodwater surface (mm)
+# CEM         Cumulative evaporation from surface mulch layer (mm)
+# CEO         Cumulative potential evapotranspiration (mm)
+# CEP         Cumulative transpiration (mm)
+# CES         Cumulative evaporation (mm)
+# CET         Cumulative evapotranspiration (mm)
+# CLOUDS      Relative cloudiness factor (0-1)
+# CO2         Atmospheric carbon dioxide concentration
+#              (µmol[CO2] / mol[air])
+# CONTROL     Composite variable containing variables related to control
+#               and/or timing of simulation.    See Appendix A.
+# CROP        Crop identification code
+# DLAYR(L)    Thickness of soil layer L (cm)
+# DUL(L)      Volumetric soil water content at Drained Upper Limit in soil
+#               layer L (cm3[water]/cm3[soil])
+# EF          Evaporation rate from flood surface (mm / d)
+# EM          Evaporation rate from surface mulch layer (mm / d)
+# EO          Potential evapotranspiration rate (mm/d)
+# EOP         Potential plant transpiration rate (mm/d)
+# EORATIO     Ratio of increase in potential evapotranspiration with
+#               increase in LAI (up to LAI=6.0) for use with FAO-56 Penman
+#               reference potential evapotranspiration.
+# EOS         Potential rate of soil evaporation (mm/d)
+# EP          Actual plant transpiration rate (mm/d)
+# ES          Actual soil evaporation rate (mm/d)
+# ET          Actual evapotranspiration rate (mm/d)
+# FLOOD       Current depth of flooding (mm)
+# FLOODWAT    Composite variable containing information related to bund
+#               management. Structure of variable is defined in
+#               ModuleDefs.for.
+# IDETW       Y=detailed water balance output, N=no detailed output
+# ISWITCH     Composite variable containing switches which control flow of
+#               execution for model.  The structure of the variable
+#               (SwitchType) is defined in ModuleDefs.for.
+# ISWWAT      Water simulation control switch (Y or N)
+# KSEVAP      Light extinction coefficient used for computation of soil
+#               evaporation
+# KTRANS      Light extinction coefficient used for computation of plant
+#               transpiration
+# LL(L)       Volumetric soil water content in soil layer L at lower limit
+#              (cm3 [water] / cm3 [soil])
+# MEEVP       Method of evapotranspiration ('P'=Penman,
+#               'R'=Priestly-Taylor, 'Z'=Zonal)
+# MEPHO       Method for photosynthesis computation ('C'=Canopy or daily,
+#               'L'=hedgerow or hourly)
+# NLAYR       Actual number of soil layers
+# PORMIN      Minimum pore space required for supplying oxygen to roots for
+#               optimal growth and function (cm3/cm3)
+# RLV(L)      Root length density for soil layer L (cm[root] / cm3[soil])
+# RWU(L)      Root water uptake from soil layer L (cm/d)
+# RWUMX       Maximum water uptake per unit root length, constrained by
+#               soil water (cm3[water] / cm [root])
+# MSALB       Soil albedo with mulch and soil water effects (fraction)
+# SAT(L)      Volumetric soil water content in layer L at saturation
+#              (cm3 [water] / cm3 [soil])
+# SOILPROP    Composite variable containing soil properties including bulk
+#               density, drained upper limit, lower limit, pH, saturation
+#               water content.  Structure defined in ModuleDefs.
+# SRAD        Solar radiation (MJ/m2-d)
+# SRFTEMP     Temperature of soil surface litter (°C)
+# ST(L)       Soil temperature in soil layer L (°C)
+# SUMES1      Cumulative soil evaporation in stage 1 (mm)
+# SUMES2      Cumulative soil evaporation in stage 2 (mm)
+# SW(L)       Volumetric soil water content in layer L
+#              (cm3 [water] / cm3 [soil])
+# SW_AVAIL(L) Soil water content in layer L available for evaporation,
+#               plant extraction, or movement through soil
+#               (cm3 [water] / cm3 [soil])
+# SWDELTS(L)  Change in soil water content due to drainage in layer L
+#              (cm3 [water] / cm3 [soil])
+# SWDELTU(L)  Change in soil water content due to evaporation and/or upward
+#               flow in layer L (cm3 [water] / cm3 [soil])
+# SWDELTX(L)  Change in soil water content due to root water uptake in
+#               layer L (cm3 [water] / cm3 [soil])
+# T           Number of days into Stage 2 evaporation (WATBAL); or time
+#               factor for hourly temperature calculations
+# TA          Daily normal temperature (°C)
+# TAMP        Amplitude of temperature function used to calculate soil
+#               temperatures (°C)
+# TAV         Average annual soil temperature, used with TAMP to calculate
+#               soil temperature. (°C)
+# TAVG        Average daily temperature (°C)
+# TMAX        Maximum daily temperature (°C)
+# TMIN        Minimum daily temperature (°C)
+# TRWU        Actual daily root water uptake over soil profile (cm/d)
+# TRWUP       Potential daily root water uptake over soil profile (cm/d)
+# U           Evaporation limit (cm)
+# WINDSP      Wind speed at 2m (km/d)
+# WINF        Water available for infiltration - rainfall minus runoff plus
+#               net irrigation (mm / d)
+# XHLAI       Healthy leaf area index (m2[leaf] / m2[ground])
+# XLAT        Latitude (deg.)
+# ----------------------------------------------------------------------
+
+
