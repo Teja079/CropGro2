@@ -1,17 +1,19 @@
-# C=======================================================================
-# C  CANOPY, Subroutine, G. Hoogenboom, K.J. Boote, J.W. Jones
-# C  Calculates canopy height and canopy width as a function of V-Stage,
-# C  air temperature, drought stress, daylength, and radiation.
-# C-----------------------------------------------------------------------
-# C  Called : VEGGR
-# C  Calls  : ERROR, FIND, IGNORE
-# C========================================================================
-from ModuleDefs import *
-import numpy as np
+#=======================================================================
+#  CANOPY
+#  Calculates canopy height and canopy width as a function of V-Stage,
+#  air temperature, drought stress, daylength, and radiation.
+#-----------------------------------------------------------------------
+#  Called : VEGGR
+#  Calls  : ERROR, FIND, IGNORE
+#========================================================================
 
-def CANOPY(DYNAMIC, ECONO, FILECC, FILEGC, KCAN, PAR, ROWSPC,  # Input
-           RVSTGE, TGRO, TURFAC, VSTAGE, XLAI,                # Input
-           CANHT, CANWH):                                     # Output
+
+def CANOPY(DYNAMIC, ECONO, FILECC, FILEGC, KCAN, PAR, ROWSPC, RVSTGE,
+           TGRO, TURFAC, VSTAGE, XLAI):
+    from ModuleDefs import RunConstants as RC, TS
+    from ERROR import ERROR
+    from READS import FIND, IGNORE
+    import numpy as np
 
     ERRKEY = "CANOPY" #PARAMETER
 
@@ -41,7 +43,7 @@ def CANOPY(DYNAMIC, ECONO, FILECC, FILEGC, KCAN, PAR, ROWSPC,  # Input
     # ***********************************************************************
     #     Run Initialization - Called once per simulation
     # ***********************************************************************
-    if DYNAMIC == RUNINIT:
+    if DYNAMIC == RC.RUNINIT:
 
         GETLUN('FILEC', LUNCRP)
         OPEN(LUNCRP, FILECC, 'OLD', ERR)
@@ -53,43 +55,43 @@ def CANOPY(DYNAMIC, ECONO, FILECC, FILEGC, KCAN, PAR, ROWSPC,  # Input
     #     ***** READ CANOPY HEIGHT & WIDTH PARAMETERS ******************
     # ***********************************************************************
         SECTION = '!*CANO'
-        FIND(LUNCRP, SECTION, LINC, FOUND)
+        LINC, FOUND = FIND(LUNCRP, SECTION)
         LNUM += LINC
 
         if FOUND == 0:
             ERROR(SECTION, 42, FILECC, LNUM)
         else:
-            IGNORE(LUNCRP, LNUM, ISECT, C255)
+            LNUM, ISECT, C255 = IGNORE(LUNCRP, LNUM)
             READ(C255, '(10F6.0)', ERR, XVSHT)
             if ERR != 0:
                 ERROR(ERRKEY, ERR, FILECC, LNUM)
 
-            IGNORE(LUNCRP, LNUM, ISECT, C255)
+            LNUM, ISECT, C255 = IGNORE(LUNCRP, LNUM)
             READ(C255, '(10F6.0)', ERR, YVSHT)
             if ERR != 0:
                 ERROR(ERRKEY, ERR, FILECC, LNUM)
 
-            IGNORE(LUNCRP, LNUM, ISECT, C255)
+            LNUM, ISECT, C255 = IGNORE(LUNCRP, LNUM)
             READ(C255, '(10F6.0)', ERR, YVSWH)
             if ERR != 0:
                 ERROR(ERRKEY, ERR, FILECC, LNUM)
 
-            IGNORE(LUNCRP, LNUM, ISECT, C255)
+            LNUM, ISECT, C255 = IGNORE(LUNCRP, LNUM)
             READ(C255, '(5F6.0)', ERR, XHWTEM)
             if ERR != 0:
                 ERROR(ERRKEY, ERR, FILECC, LNUM)
 
-            IGNORE(LUNCRP, LNUM, ISECT, C255)
+            LNUM, ISECT, C255 = IGNORE(LUNCRP, LNUM)
             READ(C255, '(5F6.0)', ERR, YHWTEM)
             if ERR != 0:
                 ERROR(ERRKEY, ERR, FILECC, LNUM)
 
-            IGNORE(LUNCRP, LNUM, ISECT, C255)
+            LNUM, ISECT, C255 = IGNORE(LUNCRP, LNUM)
             READ(C255, '(8F6.0)', ERR, XHWPAR)
             if ERR != 0:
                 ERROR(ERRKEY, ERR, FILECC, LNUM)
 
-            IGNORE(LUNCRP, LNUM, ISECT, C255)
+            LNUM, ISECT, C255 = IGNORE(LUNCRP, LNUM)
             READ(C255, '(8F6.0)', ERR, YHWPAR)
             if ERR != 0:
                 ERROR(ERRKEY, ERR, FILECC, LNUM)
@@ -104,7 +106,7 @@ def CANOPY(DYNAMIC, ECONO, FILECC, FILEGC, KCAN, PAR, ROWSPC,  # Input
         ECOTYP = ''
         LNUM = 0
         while ECOTYP != ECONO:
-            IGNORE(LUNECO, LNUM, ISECT, C255)
+            LNUM, ISECT, C255 = IGNORE(LUNECO, LNUM)
             if ISECT == 1 and C255[0] not in [' ', '*']:
                 READ(C255, '(A6,90X,2(1X,F5.0))', ERR, ECOTYP, RWIDTH, RHGHT)
                 if ERR != 0:
@@ -125,7 +127,7 @@ def CANOPY(DYNAMIC, ECONO, FILECC, FILEGC, KCAN, PAR, ROWSPC,  # Input
     # ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** *
     #    SEASONAL INITIALIZATION
     # ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** *
-    elif DYNAMIC == SEASINIT:
+    elif DYNAMIC == RC.SEASINIT:
         CANHT = 0.0
         CANWH = 0.0
 
@@ -133,14 +135,14 @@ def CANOPY(DYNAMIC, ECONO, FILECC, FILEGC, KCAN, PAR, ROWSPC,  # Input
     # EMERGENCE CALCULATIONS - Performed once per season upon emergence
     #     or transplanting of plants
     # ***********************************************************************
-    elif DYNAMIC == EMERG:
+    elif DYNAMIC == RC.EMERG:
         CANHT = TABEX(YVSHT, XVSHT, VSTAGE, 10)
         CANWH = TABEX(YVSWH, XVSHT, VSTAGE, 10)
 
     # ***********************************************************************
     # DAILY RATE/INTEGRATION
     # ***********************************************************************
-    elif DYNAMIC == INTEGR:
+    elif DYNAMIC == RC.INTEGR:
     #-----------------------------------------------------------------------
     # Calculate effect of temperature on canopy expansion, HWTEM
     #-----------------------------------------------------------------------
@@ -165,67 +167,65 @@ def CANOPY(DYNAMIC, ECONO, FILECC, FILEGC, KCAN, PAR, ROWSPC,  # Input
         CANWH = max(CANWH, TABEX(YVSWH, XVSHT, 0.0, 10))
         CANWH = min(CANWH, ROWSPC)
 
-    return
+    return CANHT, CANWH
+# ======================================================================
+# CANOPY Definitions:
+# ----------------------------------------------------------------
+# C255      255-character record read from file
+# CANHT     Canopy height (m)
+# CANWH     Canopy width normal to row (m)
+# ECONO     Ecotype code - used to match ECOTYP in .ECO file
+# ECOTYP    Ecotype code for this simulation
+# ERR       Error code for file operation
+# FILECC    Path plus filename for species file (*.spe)
+# FILEGC    Pathname plus filename for ECO file
+# FOUND     Indicator that good data was read from file by subroutine FIND
+#             (0 - End-of-file encountered, 1 - NAME was found)
+# HPAR      Effect of day's PAR on canopy expansion
+# HWTEM     Effect of temperature on canopy expansion
+# ISECT     Indicator of completion of IGNORE routine: 0 - End of file
+#             encountered, 1 - Found a good line to read, 2 - End of
+#             Section in file encountered denoted by * in column 1.
+# KCAN      Canopy light extinction coefficient for daily PAR, for
+#             equidistant plant spacing, modified when in-row and between
+#             row spacing are not equal
+# LINC      Line number of input file
+# LNUM      Current line number of input file
+# LUNCRP    Logical unit number for FILEC (*.spe file)
+# LUNECO    Logical unit number for FILEE (*.eco file)
+# PAR       Daily photosynthetically active radiation or photon flux
+#             density (moles[quanta]/m2-d)
+# PARNOD    Effective PAR at growth point (moles[quanta]/m2-d)
+# RCANHT    Rate of increase in canopy height (m/d)
+# RCANWH    Rate of increase in canopy width (m/d)
+# RHGHT     Relative height of this ecotype in comparison to the standard
+#             height per node (YVSHT) defined in the species file (*.SPE)
+# ROWSPC    Row spacing (m)
+# RVSTGE    Rate of VSTAGE change (nodes/day)
+# RWIDTH    Relative width of this ecotype in comparison to the standard
+#             width per node (YVSWH) defined in the species file (*.SPE) (m)
+# SECTION   Section name in input file
+# TGRO(I)   Hourly canopy temperature (°C)
+# TURFAC    Water stress factor for expansion (0 - 1)
+# VSTAGE    Number of nodes on main stem of plant (nodes)
+# WPAR      Effect of PAR on canopy width
+# XHWPAR(I) PAR values for table look-up for modifying height and width
+#             growth rate, particularly to allow etiliolation at low PAR
+#             values (mol/day)
+# XHWTEM    Temperatures in a table look-up function for modifying height
+#             and width growth rates (°C)
+# XLAI      Leaf area (one side) per unit of ground area
+#            (m2[leaf] / m2[ground])
+# XVSHT     Node number on main stem for use in computing height and width
+#             growth rates
+# YHWPAR(I) Relative increase in height and width growth rates with low PAR
+#             as given in XHWPAR
+# YHWTEM(I) Relative (0-1) expansion in height and width with temperatures
+#             given in XHWTEM
+# YVSHT     Length of internode (m) Vs position on the main stem defined by
+#             XVSHT (m/node)
+# YVSWH     Increase in canopy width per node developed on the main stem
+#            (m/node)
+#***********************************************************************
 
-# !=======================================================================
-# ! CANOPY Definitions:  updated 25 Feb 2004
-# !-----------------------------------------------------------------
-# ! C255      255-character record read from file
-# ! CANHT     Canopy height (m)
-# ! CANWH     Canopy width normal to row (m)
-# ! ECONO     Ecotype code - used to match ECOTYP in .ECO file
-# ! ECOTYP    Ecotype code for this simulation
-# ! ERR       Error code for file operation
-# ! FILECC    Path plus filename for species file (*.spe)
-# ! FILEGC    Pathname plus filename for ECO file
-# ! FOUND     Indicator that good data was read from file by subroutine FIND
-# !             (0 - End-of-file encountered, 1 - NAME was found)
-# ! HPAR      Effect of day's PAR on canopy expansion
-# ! HWTEM     Effect of temperature on canopy expansion
-# ! ISECT     Indicator of completion of IGNORE routine: 0 - End of file
-# !             encountered, 1 - Found a good line to read, 2 - End of
-# !             Section in file encountered denoted by * in column 1.
-# ! KCAN      Canopy light extinction coefficient for daily PAR, for
-# !             equidistant plant spacing, modified when in-row and between
-# !             row spacing are not equal
-# ! LINC      Line number of input file
-# ! LNUM      Current line number of input file
-# ! LUNCRP    Logical unit number for FILEC (*.spe file)
-# ! LUNECO    Logical unit number for FILEE (*.eco file)
-# ! PAR       Daily photosynthetically active radiation or photon flux
-# !             density (moles[quanta]/m2-d)
-# ! PARNOD    Effective PAR at growth point (moles[quanta]/m2-d)
-# ! RCANHT    Rate of increase in canopy height (m/d)
-# ! RCANWH    Rate of increase in canopy width (m/d)
-# ! RHGHT     Relative height of this ecotype in comparison to the standard
-# !             height per node (YVSHT) defined in the species file (*.SPE)
-# ! ROWSPC    Row spacing (m)
-# ! RVSTGE    Rate of VSTAGE change (nodes/day)
-# ! RWIDTH    Relative width of this ecotype in comparison to the standard
-# !             width per node (YVSWH) defined in the species file (*.SPE) (m)
-# ! SECTION   Section name in input file
-# ! TGRO(I)   Hourly canopy temperature (°C)
-# ! TURFAC    Water stress factor for expansion (0 - 1)
-# ! VSTAGE    Number of nodes on main stem of plant (nodes)
-# ! WPAR      Effect of PAR on canopy width
-# ! XHWPAR(I) PAR values for table look-up for modifying height and width
-# !             growth rate, particularly to allow etiliolation at low PAR
-# !             values (mol/day)
-# ! XHWTEM    Temperatures in a table look-up function for modifying height
-# !             and width growth rates (°C)
-# ! XLAI      Leaf area (one side) per unit of ground area
-# !            (m2[leaf] / m2[ground])
-# ! XVSHT     Node number on main stem for use in computing height and width
-# !             growth rates
-# ! YHWPAR(I) Relative increase in height and width growth rates with low PAR
-# !             as given in XHWPAR
-# ! YHWTEM(I) Relative (0-1) expansion in height and width with temperatures
-# !             given in XHWTEM
-# ! YVSHT     Length of internode (m) Vs position on the main stem defined by
-# !             XVSHT (m/node)
-# ! YVSWH     Increase in canopy width per node developed on the main stem
-# !            (m/node)
-# !***********************************************************************
-# !      END SUBROUTINE CANOPY
-# !=======================================================================
 
