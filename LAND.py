@@ -15,12 +15,8 @@ def LAND(CONTROL, ISWITCH, YRPLT, YREND):
     from SOIL import SOIL
     from IPIBS import IPIBS
     from weathr import WEATHR
-    # from SPAM import SPAM
-    # from plant import PLANT
-
-      #EXTERNAL INFO, ERROR, WARNING, IPIBS, WEATHR, SOIL, SPAM, PLANT,
-     #&  OPSUM, MGMTOPS
-      #SAVE
+    from SPAM import SPAM
+    from plant import PLANT
     # -----------------------------------------------------------------------
     #      Crop, Experiment, Command line Variables
     # -----------------------------------------------------------------------
