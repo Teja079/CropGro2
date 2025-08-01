@@ -7,6 +7,9 @@
 #  Called by:  PLANT
 #  Calls:      SDCOMP, IPDMND
 #=======================================================================
+from CropGro2.WARNING import WARNING
+
+
 def DEMAND(DYNAMIC, CONTROL,
     AGRLF, AGRRT, AGRSH2, AGRSTM, CROP, DRPP, DXR57, FILECC, FILEGC,
     FILEIO, FNINSH, FRACDN, LAGSD, LNGPEG, NDLEAF, NSTRES, PAR, PCNL,
@@ -498,105 +501,531 @@ def DEMAND(DYNAMIC, CONTROL,
              FNINR, FNINS, FNINSD, FRLF, FRRT, FRSTM, GDMSD, GRRAT1,
              NDMNEW,  NDMOLD, NDMREP, NDMSDR, NDMTOT, NDMVEG, NMINEP,
              NMOBR, PHTIM, PNTIM, POTCAR, POTLIP, SDGR, TURADD, XFRT, YREND)
+#=======================================================================
+
+#=======================================================================
+#  IPDMND, Subroutine
+#-----------------------------------------------------------------------
+#  Reads input data for DEMAND subroutine
+#-----------------------------------------------------------------------
+#  Called by:  DEMAND
+#  Calls:      FIND, ERROR, IGNORE
+#=======================================================================
+def IPDMND(FILECC, FILEGC, FILEIO):
+    from ERROR import ERROR
+    from READS import FIND, IGNORE
+    import fortranformat as ff
+    import numpy as np
+#       IMPLICIT NONE
+#       EXTERNAL GETLUN, ERROR, FIND, IGNORE, WARNING
+# !-----------------------------------------------------------------------
+#       CHARACTER*3   TYPSDT
+#       CHARACTER*6   ERRKEY
+    ERRKEY = 'IPDMND'
+#       CHARACTER*6   SECTION
+#       CHARACTER*6   ECOTYP, ECONO
+#       CHARACTER*30  FILEIO
+#       CHARACTER*78  MSG(4)
+    MSG = np.empty(4, dtype=str)
+#       CHARACTER*80  C80
+#       CHARACTER*92  FILECC, FILEGC
+#       CHARACTER*255 C255
+#
+#       INTEGER LUNCRP, LUNIO, LUNECO, ERR, LINC, LNUM, FOUND, ISECT
+#       INTEGER I, II
+#
+#       REAL CARMIN, FINREF, FRLFF, FRLFMX, FRSTMF,
+#      &  LIPOPT, LIPTB, NMOBMX, NRCVR, NVSMOB,
+#      &  PLIGSD, PMINSD, POASD, PROLFF,
+#      &  PROLFI, PRORTF, PRORTI, PROSTF, PROSTI,
+#      &  RCH2O, RLIG, RLIP, RMIN, RNO3C, ROA,
+#      &  RPRO, SHLAG, SLAMAX, SLAMIN, SLAPAR,
+#      &  SLAREF, SLAVAR, SLOSUM, SIZELF, SIZREF,
+#      &  SRMAX, TURSLA, VSSINK, XFRMAX, XFRUIT
+#         REAL LNGSH, THRESH, SDPRO, SDLIP, XFPHT, XFINT
+#         REAL NSLA
+#
+#         REAL FNSDT(4)
+    FNSDT = np.full(5, '-99.0', dtype=float)
+#         REAL XVGROW(6), YVREF(6)
+    XVGROW = np.full(7, '-99.0', dtype=float)
+    YVREF = np.full(7, '-99.0', dtype=float)
+
+
+#         REAL XSLATM(10), YSLATM(10), XTRFAC(10), YTRFAC(10),
+#      &                  XXFTEM(10), YXFTEM(10)
+    YTRFAC = np.full(11, '-99.0', dtype=float)
+    XTRFAC = np.full(11, '-99.0', dtype=float)
+    YXFTEM = np.full(11, '-99.0', dtype=float)
+    XXFTEM = np.full(11, '-99.0', dtype=float)
+    XSLATM = np.full(11, '-99.0', dtype=float)
+    YSLATM = np.full(11, '-99.0', dtype=float)
+#         REAL XLEAF(25), YLEAF(25), YSTEM(25)
+
+    XLEAF = np.full(25,'-99.0', dtype=float)
+    YLEAF = np.full(25, '-99.0', dtype=float)
+    YSTEM = np.full(25, '-99.0', dtype=float)
+#-----------------------------------------------------------------------
+    # CALL GETLUN('FILEIO', LUNIO)
+    # OPEN (LUNIO, FILE = FILEIO,STATUS = 'OLD',IOSTAT=ERR)
+    try:
+        with open(FILEIO, 'r') as f:
+            LUNIO = f.readlines()
+
+    # if ERR != 0 : ERROR(ERRKEY,ERR,FILEIO,0)
+            LNUM = 0
+#-----------------------------------------------------------------------
+#    Find and Read Field Section from FILEIO - previously read in IPIBS
+#       Look for the second section header beginning with '*CULTI'
+#-----------------------------------------------------------------------
+            SECTION = '*CULTI'
+            LINC, FOUND = FIND(LUNIO, SECTION )
+            LNUM = LNUM + LINC
+            if FOUND == 0:
+                ERROR(SECTION, 42, FILEIO, LNUM)
+
+            LINC, FOUND = FIND(LUNIO, SECTION)
+            LNUM = LNUM + LINC
+            if FOUND == 0:
+                ERROR(SECTION, 42, FILEIO, LNUM)
+            else:
+                #f10
+                # READ(LUNIO,'(24X,A6,48X,3F6.0,24X,3F6.0)',IOSTAT=ERR) ECONO, SLAVAR, SIZELF, XFRUIT, THRESH, SDPRO, SDLIP
+                f10 = ff.FortranRecordReader("24X,A6,48X,3F6.0,24X,3F6.0")
+                ECONO, SLAVAR, SIZELF, XFRUIT, THRESH, SDPRO, SDLIP = f10.read(LUNIO[LNUM])
+                LNUM = LNUM + 1
+                # if ERR != 0: ERROR(ERRKEY,ERR,FILEIO,LNUM)
+
+    # CLOSE (LUNIO)
+    except OSError:
+        ERROR(ERRKEY, -99, FILEIO, 0)
+        return
+#-----------------------------------------------------------------------
+#     Read in values from species file
+#-----------------------------------------------------------------------
+    # CALL GETLUN('FILEC', LUNCRP)
+    # OPEN (LUNCRP,FILE = FILECC, STATUS = 'OLD',IOSTAT=ERR)
+    try:
+        with open(FILECC, 'r') as f:
+            LUNCRP = f.readlines()
+
+            LNUM = 0
+            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+#-----------------------------------------------------------------------
+#    Find and Read Respiration Section
+#-----------------------------------------------------------------------
+            SECTION = '!*RESP'
+            LINC, FOUND = FIND(LUNCRP, SECTION)
+            LNUM = LNUM + LINC
+            if FOUND == 0:
+                ERROR(SECTION, 42, FILECC, LNUM)
+            else:
+                LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                # READ(C80,'(F6.0,6X,F6.0)',IOSTAT=ERR) RNO3C, RPRO
+                f20 = ff.FortranRecordReader("F6.0,6X,F6.0")
+                RNO3C, RPRO = f20.read(C80)
+                # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                # READ(C80,'(5F6.0)',IOSTAT=ERR)RCH2O,RLIP,RLIG,ROA,RMIN
+                f30 = ff.FortranRecordReader("5F6.0")
+                RCH2O, RLIP, RLIG, ROA, RMIN = f30.read(C80)
+                # ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+#-----------------------------------------------------------------------
+#    Find and Read Plant Composition Section
+#-----------------------------------------------------------------------
+                SECTION = '!*PLAN'
+                LINC, FOUND = FIND(LUNCRP, SECTION)
+                LNUM = LNUM + LINC
+                if FOUND == 0 :
+                    ERROR(SECTION, 42, FILECC, LNUM)
+                else:
+                    LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                    # READ(C80,'(F6.0,6X,2F6.0,6X,F6.0)',IOSTAT=ERR) PROLFI, PROLFF, PROSTI, PROSTF
+                    f40 = ff.FortranRecordReader("F6.0,6X,2F6.0,6X,F6.0")
+                    PROLFI, PROLFF, PROSTI, PROSTF = f40.read(C80)
+
+                    if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                    LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                    # READ(C80,'(F6.0,6X,F6.0)',IOSTAT=ERR) PRORTI, PRORTF
+                    f50 = ff.FortranRecordReader("F6.0,6X,F6.0")
+                    PRORTI, PRORTF = f50.read(C80)
+
+                    if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                    LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                    LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                    LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                    LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                    # READ(C80,'(24X,F6.0)',IOSTAT=ERR) PLIGSD
+                    f60 = ff.FortranRecordReader("24X,F6.0")
+                    PLIGSD = f60.read(C80)
+
+                    if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                    LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                    # READ(C80,'(24X,F6.0)',IOSTAT=ERR) POASD
+                    f70 = ff.FortranRecordReader("24X,F6.0")
+                    POASD = f70.read(C80)
+
+                    if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                    LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                    # READ(C80,'(24X,F6.0)',IOSTAT=ERR) PMINSD
+                    f80 = ff.FortranRecordReader("24X,F6.0")
+                    PMINSD = f80.read(C80)
+
+                    # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+#-----------------------------------------------------------------------
+#    Find and Read Seed Composition Section
+#-----------------------------------------------------------------------
+                    SECTION = '!*SEED'
+                    LINC, FOUND = FIND(LUNCRP, SECTION)
+                    LNUM = LNUM + LINC
+                    if FOUND == 0:
+                        ERROR(SECTION, 42, FILECC, LNUM)
+                    else:
+                        LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                        # READ(C80,'(4F6.0)',IOSTAT=ERR) LIPTB, LIPOPT, SLOSUM, CARMIN
+                        f90 = ff.FortranRecordReader("4F6.0")
+                        LIPTB, LIPOPT, SLOSUM, CARMIN = f90.read(C80)
+
+                        if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+                        SLOSUM = SLOSUM / 100.0
+
+#-----------------------------------------------------------------------
+#    Find and Read Carbon and Nitrogen Mining Section
+#-----------------------------------------------------------------------
+                        SECTION = '!*CARB'
+                        LINC, FOUND = FIND(LUNCRP, SECTION)
+                        LNUM = LNUM + LINC
+                        if FOUND == 0:
+                            ERROR(SECTION, 42, FILECC, LNUM)
+                        else:
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(18X,3F6.0)',IOSTAT=ERR) NMOBMX, NVSMOB, NRCVR
+                            f100 = ff.FortranRecordReader("18X,3F6.0")
+                            NMOBMX, NVSMOB, NRCVR = f100.read(C80)
+
+                            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+#-----------------------------------------------------------------------
+#    Find and Read Vegetative Partitioning Section
+#-----------------------------------------------------------------------
+                        SECTION = '!*VEGE'
+                        LINC, FOUND = FIND(LUNCRP, SECTION)
+                        LNUM = LNUM + LINC
+                        if FOUND == 0:
+                            ERROR(SECTION, 42, FILECC, LNUM)
+                        else:
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(8F6.0)',IOSTAT=ERR)(XLEAF(II),II=1,8)
+                            f110 = ff.FortranRecordReader("8F6.0")
+                            XLEAF[1:9] = f110.read(C80)
+
+                            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(8F6.0)',IOSTAT=ERR)(YLEAF(II),II=1,8)
+                            YLEAF[1:9] = f110.read(C80)
+
+                            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(8F6.0)',IOSTAT=ERR)(YSTEM(II),II=1,8)
+                            YSTEM[1:9] = f110.read(C80)
+
+                            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(12X,2F6.0)',IOSTAT=ERR) FRSTMF, FRLFF
+                            f120 = ff.FortranRecordReader("12X,2F6.0")
+                            FRSTMF, FRLFF = f120.read(C80)
+
+                            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(F6.0)',IOSTAT=ERR) FRLFMX
+                            f130 = ff.FortranRecordReader("F6.0")
+                            FRLFMX = f130.read(C80)
+
+                            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+#-----------------------------------------------------------------------
+#    Find and Read Leaf Growth Section
+#-----------------------------------------------------------------------
+                        SECTION = '!*LEAF'
+                        LINC, FOUND = FIND(LUNCRP, SECTION)
+                        LNUM = LNUM + LINC
+                        if FOUND == 0:
+                            ERROR(SECTION, 42, FILECC, LNUM)
+                        else:
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(4F6.0)',IOSTAT=ERR) FINREF, SLAREF, SIZREF, VSSINK
+                            f140 = ff.FortranRecordReader("4F6.0")
+                            FINREF, SLAREF, SIZREF, VSSINK = f140.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(6F6.0)',IOSTAT=ERR) SLAMAX, SLAMIN, SLAPAR, TURSLA, NSLA
+                            f150 = ff.FortranRecordReader("6F6.0")
+                            SLAMAX, SLAMIN, SLAPAR, TURSLA, NSLA = f150.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(6F6.0)',IOSTAT=ERR)(XVGROW(II),II=1,6)
+                            f160 = ff.FortranRecordReader("6F6.0")
+                            XVGROW[1:7] = f160.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(6F6.0)',IOSTAT=ERR)(YVREF(II),II=1,6)
+                            f170 = ff.FortranRecordReader("6F6.0")
+                            YVREF[1:7] = f170.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(5F6.0)',IOSTAT=ERR)(XSLATM(II),II = 1,5)
+                            f180 = ff.FortranRecordReader("5F6.0")
+                            XSLATM[1:6] = f180.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(5F6.0)',IOSTAT=ERR)(YSLATM(II),II = 1,5)
+                            YSLATM[1:6] = f180.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+#-----------------------------------------------------------------------
+#    Find and Read Seed and Shell Growth Section
+#-----------------------------------------------------------------------
+                        SECTION = '!*SEED'
+                        LINC, FOUND = FIND(LUNCRP, SECTION)
+                        LNUM = LNUM + LINC
+                        if FOUND == 0:
+                            ERROR(SECTION, 42, FILECC, LNUM)
+                        else:
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(6X,F6.0)',IOSTAT=ERR) SRMAX
+                            f190 = ff.FortranRecordReader("6X,F6.0")
+                            SRMAX = f190.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(6X,2F6.0)',IOSTAT=ERR) XFRMAX, SHLAG
+                            f200 = ff.FortranRecordReader("6X,2F6.0")
+                            XFRMAX, SHLAG = f200.read(C80)
+
+                            # ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(4(1X,F5.2),3X,A3)',IOSTAT=ERR) (FNSDT(II),II=1,4), TYPSDT
+                            f210 = ff.FortranRecordReader("4(1X,F5.2),3X,A3")
+                            FNSDT[1:5], TYPSDT = f210.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(6F6.0)',IOSTAT=ERR)(XXFTEM(II),II = 1,6)
+                            f220 = ff.FortranRecordReader("6F6.0")
+                            XXFTEM[1:7] = f220.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(6F6.0)',IOSTAT=ERR)(YXFTEM(II),II = 1,6)
+                            YXFTEM[1:7] = f220.read(C80)
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            for I in range(1,6):
+                                LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+
+                            # READ(C80,'(4F6.0)',IOSTAT=ERR)(XTRFAC(II),II = 1,4)
+                            f230 = ff.FortranRecordReader("4F6.0")
+                            XTRFAC[1:5] = f230.read(C80)
+
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+
+                            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+                            # READ(C80,'(4F6.0)',IOSTAT=ERR)(YTRFAC(II),II = 1,4)
+                            YTRFAC[1:5] = f230.read(C80)
+                            # if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
+    except OSError:
+        ERROR(ERRKEY, -99, FILEIO, 0)
+        return
+#-----------------------------------------------------------------------
+#     CLOSE(LUNCRP)
+
+#-----------------------------------------------------------------------
+#    Read Ecotype Parameter File
+#-----------------------------------------------------------------------
+        # CALL GETLUN('FILEE', LUNECO)
+        # OPEN (LUNECO,FILE = FILEGC,STATUS = 'OLD',IOSTAT=ERR)
+
+    try:
+        with open(FILEGC, 'r') as f:
+            LUNECO = f.readlines()
+
+            # if ERR != 0: ERROR(ERRKEY,ERR,FILEGC,0)
+            ECOTYP = '      '
+            LNUM = 0
+            while True:
+                LNUM, ISECT, C255 = IGNORE(LUNECO, LNUM)
+                if ((ISECT == 1) and (C255(1:1) != ' ') and (C255(1:1) != '*')):
+    #               READ (C255,'(A6,66X,F6.0,30X,3F6.0)',IOSTAT=ERR) ECOTYP, LNGSH, THRESH, SDPRO, SDLIP
+    #                 READ (C255,'(A6,66X,F6.0,54X,2(F6.0))',IOSTAT=ERR) ECOTYP,LNGSH, XFPHT, XFINT
+                    f240 = ff.FortranRecordReader("A6,66X,F6.0,54X,2(F6.0)")
+                    ECOTYP,LNGSH, XFPHT, XFINT = f240.read(C80)
+
+                    # if ERR != 0: ERROR(ERRKEY,ERR,FILEGC,LNUM)
+                    if ECOTYP == ECONO:
+                        return
+
+                elif ISECT == 0:
+                    if ECONO == 'DFAULT': ERROR(ERRKEY,35,FILEGC,LNUM)
+                    ECONO = 'DFAULT'
+                    # REWIND(LUNECO)
+                    LNUM = 0
+                if ECOTYP == ECONO:
+                    break
+
+            if XFPHT < 0.0:
+                MSG[1] = 'Ecotype coefficient is not properly defined.'
+                MSG[2] = 'Time required to reach maximum partitioning to '
+                MSG[3] = 'pod/fruit. (photothermal days)'
+                MSG[4] = 'XFPHT must be greater then 0.0.'
+                WARNING (4, ERRKEY, MSG)
+                ERROR(ERRKEY,1,FILEGC,0)
+            elif (XFINT < 0.0 or XFINT > 1.0):
+                MSG[1] = 'Ecotype Coefficients is not properly defined.'
+                MSG[2] = 'Initial partitioning to pod/fruit during early '
+                MSG[3] = 'pod/fruit growth.'
+                MSG[4] = 'XFINT must be between/included 0.0 and 1.0.'
+                WARNING (4, ERRKEY, MSG)
+                ERROR(ERRKEY,2,FILEGC,0)
+    except OSError:
+        ERROR(ERRKEY, -99, FILEIO, 0)
+        return
+
+    return (CARMIN, FINREF, FNSDT, FRLFF, FRLFMX,FRSTMF, LIPOPT, LIPTB, LNGSH, NMOBMX,
+        NRCVR, NVSMOB, PLIGSD, PMINSD, POASD,PROLFF, PROLFI, PRORTF, PRORTI, PROSTF,
+        PROSTI, RCH2O, RLIG, RLIP, RMIN, RNO3C, ROA,RPRO, SDLIP, SDPRO, SHLAG, SLAMAX,
+        SLAMIN,SLAPAR, SLAREF, SLAVAR, SLOSUM, SIZELF, SIZREF, SRMAX, THRESH, TURSLA,
+        TYPSDT, VSSINK, XFRMAX, XFRUIT, XLEAF, XSLATM, XTRFAC, XVGROW, XXFTEM, YLEAF,
+        YSLATM, YSTEM, YTRFAC, YVREF, YXFTEM, XFPHT, XFINT, NSLA)
+#=======================================================================
+
+
 
 # !=======================================================================
 #
 # !=======================================================================
-# !  IPDMND, Subroutine, C.H. Porter
+# !  IPDMND, Subroutine,
 # !-----------------------------------------------------------------------
 # !  Reads input data for DEMAND subroutine
 # !-----------------------------------------------------------------------
 # !  Called by:  DEMAND
 # !  Calls:      FIND, ERROR, IGNORE
 # !=======================================================================
-def IPDMND(FILECC, FILEGC, FILEIO):
-    #Input e.g. \TMGRO048.SPE, \TMGRO048.ECO, \DSSAT48.INP
-
-    ERRKEY = 'IPDMND'
-
-    SECTION = '*CULTI'
-    with open(FILEIO, 'r') as file:
-        lines = file.readlines()
-    found = 0
-    for i, line in enumerate(lines):
-        if SECTION in line:
-            found += 1
-            if found == 2:
-                try:
-                    data = lines[i + 1].split()
-                    ECONO = data[0]
-                    SLAVAR, SIZELF, XFRUIT, THRESH, SDPRO, SDLIP = map(float, data[1:])
-                except:
-                    raise ValueError(f"Error reading {FILEIO} at line {i + 1}")
-                break
-
-        if found < 2:
-            raise ValueError(f"{SECTION} not found twice in {FILEIO}")
-
-        with open(FILECC, 'r') as file:
-            lines = file.readlines()
-
-        sections = {'!*RESP': [], '!*PLAN': [], '!*SEED': [], '!*CARB': [], '!*VEGE': [], '!*LEAF': [], '!*SEED': []}
-        current_section = None
-
-        for line in lines:
-            if line.strip() in sections:
-                current_section = line.strip()
-            elif current_section:
-                sections[current_section].append(line.strip())
-
-        if '!*RESP' in sections:
-            try:
-                RNO3C, RPRO = map(float, sections['!*RESP'][0].split()[:2])
-                RCH2O, RLIP, RLIG, ROA, RMIN = map(float, sections['!*RESP'][4].split()[:5])
-            except:
-                raise ValueError(f"Error reading RESP section in {FILECC}")
-
-        if '!*PLAN' in sections:
-            try:
-                PROLFI, PROLFF, PROSTI, PROSTF = map(float, sections['!*PLAN'][2].split()[:4])
-                PRORTI, PRORTF = map(float, sections['!*PLAN'][4].split()[:2])
-                PLIGSD = float(sections['!*PLAN'][10].split()[0])
-                POASD = float(sections['!*PLAN'][12].split()[0])
-                PMINSD = float(sections['!*PLAN'][14].split()[0])
-            except:
-                raise ValueError(f"Error reading PLAN section in {FILECC}")
-
-        if '!*SEED' in sections:
-            try:
-                LIPTB, LIPOPT, SLOSUM, CARMIN = map(float, sections['!*SEED'][2].split()[:4])
-                SLOSUM /= 100.0
-            except:
-                raise ValueError(f"Error reading SEED section in {FILECC}")
-
-        if '!*CARB' in sections:
-            try:
-                NMOBMX, NVSMOB, NRCVR = map(float, sections['!*CARB'][2].split()[2:])
-            except:
-                raise ValueError(f"Error reading CARB section in {FILECC}")
-
-        with open(FILEGC, 'r') as file:
-            lines = file.readlines()
-
-        ECONO = ECONO.strip()
-        ECOTYP = ''
-
-        # for i, line in enumerate(lines):
-        #     if line.strip() and not line.startswith('*'):
-        #         parts = line.split()
-        #         if len(parts) >= 2:
-        #             ECOTYP = parts[0]
-        #             LNGSH = float(parts[1])
-        #             if ECOTYP == ECONO:
-        #                     break
-
-    return (CARMIN, FINREF, FNSDT, FRLFF, FRLFMX, FRSTMF, LIPOPT, LIPTB,
-            LNGSH, NMOBMX, NRCVR, NVSMOB, PLIGSD, PMINSD, POASD, PROLFF,
-            PROLFI, PRORTF, PRORTI, PROSTF, PROSTI, RCH2O, RLIG, RLIP,
-            RMIN, RNO3C, ROA, RPRO, SDLIP, SDPRO, SHLAG, SLAMAX, SLAMIN,
-            SLAPAR, SLAREF, SLAVAR, SLOSUM, SIZELF, SIZREF, SRMAX, THRESH,
-            TURSLA, TYPSDT, VSSINK, XFRMAX, XFRUIT, XLEAF, XSLATM, XTRFAC,
-            XVGROW, XXFTEM, YLEAF, YSLATM, YSTEM, YTRFAC, YVREF, YXFTEM)
+# def IPDMND(FILECC, FILEGC, FILEIO):
+#     #Input e.g. \TMGRO048.SPE, \TMGRO048.ECO, \DSSAT48.INP
+#
+#     ERRKEY = 'IPDMND'
+#
+#     SECTION = '*CULTI'
+#     with open(FILEIO, 'r') as file:
+#         lines = file.readlines()
+#     found = 0
+#     for i, line in enumerate(lines):
+#         if SECTION in line:
+#             found += 1
+#             if found == 2:
+#                 try:
+#                     data = lines[i + 1].split()
+#                     ECONO = data[0]
+#                     SLAVAR, SIZELF, XFRUIT, THRESH, SDPRO, SDLIP = map(float, data[1:])
+#                 except:
+#                     raise ValueError(f"Error reading {FILEIO} at line {i + 1}")
+#                 break
+#
+#         if found < 2:
+#             raise ValueError(f"{SECTION} not found twice in {FILEIO}")
+#
+#         with open(FILECC, 'r') as file:
+#             lines = file.readlines()
+#
+#         sections = {'!*RESP': [], '!*PLAN': [], '!*SEED': [], '!*CARB': [], '!*VEGE': [], '!*LEAF': [], '!*SEED': []}
+#         current_section = None
+#
+#         for line in lines:
+#             if line.strip() in sections:
+#                 current_section = line.strip()
+#             elif current_section:
+#                 sections[current_section].append(line.strip())
+#
+#         if '!*RESP' in sections:
+#             try:
+#                 RNO3C, RPRO = map(float, sections['!*RESP'][0].split()[:2])
+#                 RCH2O, RLIP, RLIG, ROA, RMIN = map(float, sections['!*RESP'][4].split()[:5])
+#             except:
+#                 raise ValueError(f"Error reading RESP section in {FILECC}")
+#
+#         if '!*PLAN' in sections:
+#             try:
+#                 PROLFI, PROLFF, PROSTI, PROSTF = map(float, sections['!*PLAN'][2].split()[:4])
+#                 PRORTI, PRORTF = map(float, sections['!*PLAN'][4].split()[:2])
+#                 PLIGSD = float(sections['!*PLAN'][10].split()[0])
+#                 POASD = float(sections['!*PLAN'][12].split()[0])
+#                 PMINSD = float(sections['!*PLAN'][14].split()[0])
+#             except:
+#                 raise ValueError(f"Error reading PLAN section in {FILECC}")
+#
+#         if '!*SEED' in sections:
+#             try:
+#                 LIPTB, LIPOPT, SLOSUM, CARMIN = map(float, sections['!*SEED'][2].split()[:4])
+#                 SLOSUM /= 100.0
+#             except:
+#                 raise ValueError(f"Error reading SEED section in {FILECC}")
+#
+#         if '!*CARB' in sections:
+#             try:
+#                 NMOBMX, NVSMOB, NRCVR = map(float, sections['!*CARB'][2].split()[2:])
+#             except:
+#                 raise ValueError(f"Error reading CARB section in {FILECC}")
+#
+#         with open(FILEGC, 'r') as file:
+#             lines = file.readlines()
+#
+#         ECONO = ECONO.strip()
+#         ECOTYP = ''
+#
+#         # for i, line in enumerate(lines):
+#         #     if line.strip() and not line.startswith('*'):
+#         #         parts = line.split()
+#         #         if len(parts) >= 2:
+#         #             ECOTYP = parts[0]
+#         #             LNGSH = float(parts[1])
+#         #             if ECOTYP == ECONO:
+#         #                     break
+#
+#     return (CARMIN, FINREF, FNSDT, FRLFF, FRLFMX, FRSTMF, LIPOPT, LIPTB,
+#             LNGSH, NMOBMX, NRCVR, NVSMOB, PLIGSD, PMINSD, POASD, PROLFF,
+#             PROLFI, PRORTF, PRORTI, PROSTF, PROSTI, RCH2O, RLIG, RLIP,
+#             RMIN, RNO3C, ROA, RPRO, SDLIP, SDPRO, SHLAG, SLAMAX, SLAMIN,
+#             SLAPAR, SLAREF, SLAVAR, SLOSUM, SIZELF, SIZREF, SRMAX, THRESH,
+#             TURSLA, TYPSDT, VSSINK, XFRMAX, XFRUIT, XLEAF, XSLATM, XTRFAC,
+#             XVGROW, XXFTEM, YLEAF, YSLATM, YSTEM, YTRFAC, YVREF, YXFTEM)
 #======================================================================
 #      Variable definitions for DEMAND and IPDMND
 #----------------------------------------------------------------------
