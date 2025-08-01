@@ -3,7 +3,7 @@
 # Might need to change rate, integr into seperate functions
 
 # Import required modules
-from ModuleDefs import *
+from ModuleDefs import RunConstants as RC, TS
 from Read import readX,readCUL,readSPE,readECO
 import numpy as np
 import Rstages as rs
@@ -100,7 +100,7 @@ def PHENOL(
     iswwat = iswitch.ISWWAT
     isimi = iswitch.ISIMI
 
-    if dynamic == RUNINIT:
+    if dynamic == RC.RUNINIT:
         #----------------Ipphenol section-----------------------------------
         # Initialize arrays of zeros.
         TB = np.zeros([5], dtype=float)
@@ -220,7 +220,7 @@ def PHENOL(
     # ***********************************************************************
     # Seasonal initialization - run once per season
     # ***********************************************************************
-    if dynamic == SEASINIT:
+    if dynamic == RC.SEASINIT:
         # -----------------------------------------------------------------------
         # Initialization variables from INPLNT
         # -----------------------------------------------------------------------
@@ -281,7 +281,7 @@ def PHENOL(
                 nveg0,phthrs,rstage,rvstge,stgdoy,seed_frac,tdumx,tdumx2,veg_frac,
                 vstage,yremrg,yrnr1,yrnr2,yrnr3,yrnr5,yrnr7)
 
-    if dynamic == RATE:
+    if dynamic == RC.RATE:
         # Emergence Phase Only
         if nveg0 > das:
             fuday[0] = 1.0
@@ -380,7 +380,7 @@ def PHENOL(
                 nveg0, phthrs, rstage, rvstge, stgdoy, seed_frac, tdumx, tdumx2, veg_frac,
                 vstage, yremrg, yrnr1, yrnr2, yrnr3, yrnr5, yrnr7)
 
-    if dynamic == INTEGR:
+    if dynamic == RC.INTEGR:
         # Check to see if stages occur today, and set them in RSTAGES
         # Call the rstages function
         rs.rstages(control, fnstr, fpstr, fsw, ft, fuday, isimi, nprior, phthrs, plme, sdepth, yrdoy, yrplt, yrsim)
