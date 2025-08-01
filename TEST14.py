@@ -5,17 +5,16 @@
 #-----------------------------------------------------------------------
 #=======================================================================
 #
-import numpy as np
-from fortranformat._edit_descriptors import P
-
-from ModuleDefs import N, NL, NELEM
-
 
 def HRES_CGRO(CONTROL, CROP, DLAYR, DWNOD, HARVFRAC, NLAYR,
               PCONC_SHUT, PCONC_ROOT, PCONC_SHEL, PCONC_SEED,
               PLIGLF, PLIGNO, PLIGRT, PLIGSD, PLIGSH, PLIGST,
               RLV, RTWT, SDWT, SENESCE, SHELWT, STMWT, WTLF,
               WTNLF, WTNNOD, WTNRT, WTNSD, WTNSH, WTNST):
+    import numpy as np
+    from fortranformat._edit_descriptors import P
+
+    from ModuleDefs import N, NL, NELEM
 #
 # !-------------------------------------------------------------------------
 #       USE ModuleDefs
