@@ -1,18 +1,12 @@
-# C=======================================================================
-# C  OPGROW, Subroutine, G. Hoogenboom, J.W. Jones
-# C-----------------------------------------------------------------------
-# C  Generates output file for daily growth variables
-# C-----------------------------------------------------------------------
-# C  Called by: PLANT
-# C  Calls:     None
-# !=======================================================================
-import numpy as np
-from ModuleDefs import *
-import os
-# import CsvOutput
-# import Linklist
-
-def OPGROW(CONTROL, ISWITCH, SoilProp,
+#=======================================================================
+#  OPGROW
+#-----------------------------------------------------------------------
+#  Generates output file for daily growth variables
+#-----------------------------------------------------------------------
+#  Called by: PLANT
+#  Calls:     None
+#=======================================================================
+def OPGROW(CONTROL, ISWITCH, SOILPROP,
     CADLF, CADST, CANHT, CANWH, CMINEA, DWNOD, GROWTH,
     GRWRES, KSTRES, MAINR, MDATE, NFIXN, NLAYR, NSTRES,
     PCLSD, PCCSD, PCNL, PCNRT, PCNSD, PCNSH, PCNST, PG,
@@ -20,8 +14,13 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
     RLV, RSTAGE, RTDEP, RTWT, SATFAC, SDWT, SEEDNO,
     SENESCE, SLA, STMWT, SWFAC, TGRO, TGROAV, TOPWT,
     TOTWT, TURFAC, VSTAGE, WTLF, WTNCAN, WTNLF, WTNST,
-    WTNSD, WTNUP, WTNFX, XLAI, YRPLT):
+    WTNSD, WTNUP, WTNFX, XLAI, YRPLT, LINTW, LINTP):
 
+    import os
+    from ModuleDefs import RunConstants as RC, NL, TS
+    import numpy as np
+    from DATES import YR_DOY
+    from UTILS import NINT
 
     IDETG, ISWPHO, ISWPOT = ' '*3
     CROP = ' '
@@ -29,26 +28,19 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
     OUTG, OUTPC, OUTPN = '            '*3
 
     COUNT, DAP, DAS, DOY, DYNAMIC, ERRNUM, FROP, I, L = [0]*9
-    N_LYR, NLAYR, NOUTDG, NOUTPC, NOUTPN, RUN, RSTAGE = [0]*7
-    TIMDIF, YEAR, YRDOY, MDATE, YRPLT, VWAD = [0]*6
+    N_LYR, NOUTDG, NOUTPC, NOUTPN, RUN = [0]*5
+    TIMDIF, YEAR, YRDOY, VWAD = [0]*4
 
-    CADLF, CADST, CANHT, CANWH, CMINEA, DWNOD = [0.0]*6
-    GROWTH, GRWRES, HI, HIP, MAINR, NSTRES = [0.0]*6
-    PCLSD, PCCSD, PCNL, PG, PODNO, PODWT, PODWTD = [0.0]*7
-    RHOL, RHOS, RTDEP, RTWT, STMWT, SDWT, SEEDNO = [0.0]*7
-    SDSIZE, SHELLW, SHELPC, SLA = [0.0]*4
-    SATFAC, SWFAC, TGROAV, TOPWT, TOTWT, TURFAC = [0.0]*6
-    VSTAGE, WTLF, XLAI = [0.0]*3
+    HI, HIP = [0.0]*2
+    SDSIZE, SHELLW, SHELPC = [0.0]*3
 
     PCCSDP, PCLSDP, PCNLP, PCNRTP, PCNSDP = [0.0]*5
-    PCNSHP, PCNSTP, RHOLP, RHOSP, SLAP = [0.0]*5
+    PCNSTP, RHOLP, RHOSP, SLAP = [0.0]*4
 
-    RLV = np.zeros(NL)
-    TGRO = np.zeros(NL)
+    # RLV = np.zeros(NL)
+    # TGRO = np.zeros(NL)
 
-    WTNCAN,WTNLF,WTNST,WTNSD,WTNUP,WTNFX = [0.0]*6
-    WTNVEG,PCNVEG,NFIXN     = [0.0]*3
-    PCNST,PCNRT,PCNSH,PCNSD = [0.0]*4
+    WTNVEG,PCNVEG     = [0.0]*2
 
     CUMSENSURF,  CUMSENSOIL  = [0.0]*2
     CUMSENSURFN, CUMSENSOILN  = [0.0]*2
@@ -57,18 +49,11 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
 
     FEXIST, FIRST = (False,False)
 
-    PStres1, PStres2, KSTRES = [0.0]*3
-
     SENSURFT, SENSOILT = [0.0]*2
-
-    CONTROL = ControlType()
-    ISWITCH = SwitchType()
-    SENESCE = ResidueType()
-    SOILPROP = SoilType()
 
     CROP    = CONTROL.CROP
     IDETG   = ISWITCH.IDETG
-    if (CROP == 'FA' .OR. IDETG == 'N'): return
+    if CROP == 'FA' or IDETG == 'N': return
 
     DAS     = CONTROL.DAS
     DYNAMIC = CONTROL.DYNAMIC
@@ -84,7 +69,7 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
 #***********************************************************************
 #     Run initialization - run once per simulation
 #***********************************************************************
-    if DYNAMIC == RUNINIT:
+    if DYNAMIC == RC.RUNINIT:
 #-----------------------------------------------------------------------
         if FMOPT == 'A' or FMOPT == ' ':
             OUTG  = 'PlantGro.OUT'
@@ -96,7 +81,7 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
             OUTPC  = 'PlantC.OUT  '
             GETLUN('OUTPC', NOUTPC)
 
-    if DYNAMIC == SEASINIT:
+    if DYNAMIC == RC.SEASINIT:
         # -----------------------------------------------------------------------
         if FMOPT == 'A' or FMOPT == ' ':
             # Initialize daily growth output file
@@ -111,7 +96,7 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
                     FIRST = True
 
             # Write headers
-            HEADER(SEASINIT, OUTG, RUN)
+            HEADER(RC.SEASINIT, OUTG, RUN)
 
         N_LYR = min(10, max(4, SOILPROP.NLAYR))
 
@@ -148,37 +133,37 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
                 NOUTDG.write("    SNW0C   SNW1C")
 
             #-----------------------------------------------------------------------
-            #Initialize daily plant nitrogen output file
-            FEXIST = os.path.exists(OUTPN)
-            with open(OUTPN, 'a' if FEXIST else 'w') as NOUTPN:
-                if not FEXIST:
-                    NOUTPN.write("*PLANT N OUTPUT FILE")
-                    FIRST = True
-                else:
-                    FIRST = False
+                #Initialize daily plant nitrogen output file
+                FEXIST = os.path.exists(OUTPN)
+                with open(OUTPN, 'a' if FEXIST else 'w') as NOUTPN:
+                    if not FEXIST:
+                        NOUTPN.write("*PLANT N OUTPUT FILE")
+                        FIRST = True
+                    else:
+                        FIRST = False
 
-                HEADER(SEASINIT, NOUTPN, RUN)
+                    HEADER(RC.SEASINIT, NOUTPN, RUN)
 
-                NOUTPN.write(
-                    "@YEAR DOY   DAS   DAP"
-                    "    CNAD    GNAD    VNAD    GN%D    VN%D     NFXC    NUPC"
-                    "    LNAD    SNAD    LN%D    SN%D    SHND"
-                    "   RN%D   NFXD   SNN0C   SNN1C"
-                )
+                    NOUTPN.write(
+                        "@YEAR DOY   DAS   DAP"
+                        "    CNAD    GNAD    VNAD    GN%D    VN%D     NFXC    NUPC"
+                        "    LNAD    SNAD    LN%D    SN%D    SHND"
+                        "   RN%D   NFXD   SNN0C   SNN1C"
+                    )
             #-----------------------------------------------------------------------
-            #       Initialize daily plant carbon output file
-            FEXIST = os.path.exists(OUTPC)
-            with open(OUTPC, 'a' if FEXIST else 'w') as NOUTPC:
-                if not FEXIST:
-                    NOUTPN.write("*PLANT C OUTPUT FILE")
-                    FIRST = True
-                else:
-                    FIRST = False
+                #       Initialize daily plant carbon output file
+                FEXIST = os.path.exists(OUTPC)
+                with open(OUTPC, 'a' if FEXIST else 'w') as NOUTPC:
+                    if not FEXIST:
+                        NOUTPN.write("*PLANT C OUTPUT FILE")
+                        FIRST = True
+                    else:
+                        FIRST = False
 
-                HEADER(SEASINIT, NOUTPC, RUN)
-                NOUTPC.write('@YEAR DOY   DAS   DAP   TWAD    PHAD'
-                '    CMAD    CGRD    GRAD    MRAD    CHAD   CL%D   CS%D'
-                '   TGNN   TGAV    GN%D    GL%D    GC%D')
+                    HEADER(RC.SEASINIT, NOUTPC, RUN)
+                    NOUTPC.write('@YEAR DOY   DAS   DAP   TWAD    PHAD'
+                    '    CMAD    CGRD    GRAD    MRAD    CHAD   CL%D   CS%D'
+                    '   TGNN   TGAV    GN%D    GL%D    GC%D')
 
         CUMSENSURF = 0.0
         CUMSENSOIL = 0.0
@@ -194,7 +179,7 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
     # ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** *
     #     DAILY OUTPUT
     # ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** ** *
-    if DYNAMIC == OUTPUT:
+    if DYNAMIC == RC.OUTPUT:
         # -----------------------------------------------------------------------
         # CHECK FOR OUTPUT FREQUENCY
         # -----------------------------------------------------------------------
@@ -226,7 +211,7 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
             DAP = max(0, TIMDIF(YRPLT, YRDOY))
             if DAP > DAS:
                 DAP = 0
-             YR_DOY(YRDOY, YEAR, DOY)
+            YEAR, DOY = YR_DOY(YRDOY)
 
             # Prior to emergence, do not report %N, %C values
             RHOLP = RHOL * 100.0
@@ -276,7 +261,7 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
                 KST_AV /= COUNT
                 COUNT = 0
 
-            VWAD = round(WTLF * 10 + STMWT * 10)
+            VWAD = NINT(WTLF * 10 + STMWT * 10)
 
             if FMOPT == 'A' or FMOPT == ' ':
                 with open(OUTG, 'a') as NOUTDG:  # Open file in append mode
@@ -303,16 +288,16 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
 
                     NOUTDG.write(f"{round(CUMSENSURF):8d} {round(CUMSENSOIL):7d}\n")
             #CSV output
-            if FMOPT == 'C':
-                CsvOut(EXPNAME, CONTROL.RUN, CONTROL.TRTNUM, CONTROL.ROTNUM,
-                CONTROL.REPNO, YEAR, DOY, DAS, DAP, VSTAGE, RSTAGE, XLAI,
-                WTLF, STMWT, SDWT, RTWT, VWAD, TOPWT, SEEDNO, SDSIZE, HI, PODWT,
-                PODNO, SWF_AV, TUR_AV, NST_AV, PS1_AV, PS2_AV, KST_AV, EXW_AV,
-                PCNLP, SHELPC, HIP, PODWTD, SLAP, CANHT, CANWH,
-                DWNOD, RTDEP, N_LYR, RLV, CUMSENSURF, CUMSENSOIL,
-                vCsvline, vpCsvline, vlngth)
-
-                Linklst(vCsvline)
+            # if FMOPT == 'C':
+            #     CsvOut(EXPNAME, CONTROL.RUN, CONTROL.TRTNUM, CONTROL.ROTNUM,
+            #     CONTROL.REPNO, YEAR, DOY, DAS, DAP, VSTAGE, RSTAGE, XLAI,
+            #     WTLF, STMWT, SDWT, RTWT, VWAD, TOPWT, SEEDNO, SDSIZE, HI, PODWT,
+            #     PODNO, SWF_AV, TUR_AV, NST_AV, PS1_AV, PS2_AV, KST_AV, EXW_AV,
+            #     PCNLP, SHELPC, HIP, PODWTD, SLAP, CANHT, CANWH,
+            #     DWNOD, RTDEP, N_LYR, RLV, CUMSENSURF, CUMSENSOIL,
+            #     vCsvline, vpCsvline, vlngth)
+            #
+            #     Linklst(vCsvline)
 
 #           Set average stress factors since last printout back to zero
             SWF_AV = 0.0
@@ -339,21 +324,21 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
                         f"{PCNLP:7.2f} {PCNSTP:7.2f} {PCNSHP:7.1f} {PCNRTP:6.1f} "
                         f"{NFIXN * 10:7.2f} {CUMSENSURFN:7.2f} {CUMSENSOILN:7.2f}\n"
                     )
-            if FMOPT == 'C':
-                CsvOutPlNCrGro(EXPNAME, CONTROL.RUN, CONTROL.TRTNUM,
-                               CONTROL.ROTNUM, CONTROL.REPNO, YEAR, DOY, DAS, DAP,
-                               WTNCAN, WTNSD, WTNVEG, PCNSDP, PCNVEG, WTNFX, WTNUP,
-                               WTNLF, WTNST, PCNLP, PCNSTP, PCNSHP, PCNRTP, NFIXN,
-                               CUMSENSURFN, CUMSENSOILN,
-                               vCsvlinePlNCrGro, vpCsvlinePlNCrGro, vlngthPlNCrGro)
-                LinklstPlNCrGro(vCsvlinePlNCrGro)
-                CsvOutPlCCrGro(EXPNAME, CONTROL.RUN, CONTROL.TRTNUM,
-                               CONTROL.ROTNUM, CONTROL.REPNO, YEAR, DOY, DAS, DAP,
-                               TOTWT, PG, CMINEA, GROWTH, GRWRES, MAINR, CADLF,
-                               CADST, RHOLP, RHOSP, TGRO, TGROAV, PCNSDP, PCLSDP,
-                               PCCSDP, TS,
-                               vCsvlinePlCCrGro, vpCsvlinePlCCrGro, vlngthPlCCrGro)
-                LinklstPlCCrGro(vCsvlinePlCCrGro)
+            # if FMOPT == 'C':
+            #     CsvOutPlNCrGro(EXPNAME, CONTROL.RUN, CONTROL.TRTNUM,
+            #                    CONTROL.ROTNUM, CONTROL.REPNO, YEAR, DOY, DAS, DAP,
+            #                    WTNCAN, WTNSD, WTNVEG, PCNSDP, PCNVEG, WTNFX, WTNUP,
+            #                    WTNLF, WTNST, PCNLP, PCNSTP, PCNSHP, PCNRTP, NFIXN,
+            #                    CUMSENSURFN, CUMSENSOILN,
+            #                    vCsvlinePlNCrGro, vpCsvlinePlNCrGro, vlngthPlNCrGro)
+            #     LinklstPlNCrGro(vCsvlinePlNCrGro)
+            #     CsvOutPlCCrGro(EXPNAME, CONTROL.RUN, CONTROL.TRTNUM,
+            #                    CONTROL.ROTNUM, CONTROL.REPNO, YEAR, DOY, DAS, DAP,
+            #                    TOTWT, PG, CMINEA, GROWTH, GRWRES, MAINR, CADLF,
+            #                    CADST, RHOLP, RHOSP, TGRO, TGROAV, PCNSDP, PCLSDP,
+            #                    PCCSDP, TS,
+            #                    vCsvlinePlCCrGro, vpCsvlinePlCCrGro, vlngthPlCCrGro)
+            #     LinklstPlCCrGro(vCsvlinePlCCrGro)
 
             if FMOPT == 'A' or FMOPT == ' ':
                 with open(OUTPC, 'a') as NOUTPC:
@@ -366,7 +351,7 @@ def OPGROW(CONTROL, ISWITCH, SoilProp,
     # ***********************************************************************
     #     Seasonal Output
     # ***********************************************************************
-    elif DYNAMIC .EQ. SEASEND :
+    elif DYNAMIC == RC.SEASEND :
         if FMOPT == 'A' or FMOPT == ' ':
             NOUTPN.close()
             NOUTDG.close()
