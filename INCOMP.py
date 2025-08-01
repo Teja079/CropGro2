@@ -6,29 +6,16 @@
 #  Called : PLANT
 #  Calls  : ERROR, FIND, IGNORE
 #=======================================================================
-
-def INCOMP(DYNAMIC,
-         FILECC, FILEIO, FRLF, FRRT, FRSTM,              #Input
-         AGRLF, AGRNOD, AGRRT, AGRSD1, AGRSD2, AGRSH1,   #Output
-         AGRSH2, AGRSTM, AGRVG, AGRVG2, SDPROR):         #Output
-
-#-----------------------------------------------------------------------
-    import ModuleDefs
-    #EXTERNAL GETLUN, FIND, ERROR, IGNORE
-    #SAVE
+def INCOMP(DYNAMIC,FILECC, FILEIO, FRLF, FRRT, FRSTM):
+    from ModuleDefs import RunConstants as RC
+    from READS import FIND, IGNORE
+    from ERROR import ERROR
 
     ERRKEY = 'INCOMP'
-    SECTION = " " * 6
-    FILEIO = " " * 30
-    C80 = " " * 80
-    FILECC = " " * 92
 
     LUNCRP, LUNIO = [1] * 2
     DYNAMIC, ERR, FOUND, ISECT, LINC, LNUM = [1] * 6
 
-    AGRLF , AGRNOD, AGRRT , AGRSD1, AGRSD2, AGRSH1 = [0.0] * 6
-    AGRSH2, AGRSTM, AGRVG , AGRVG2 = [0.0] * 4
-    FRLF  , FRRT  , FRSTM = [0.0] * 3
     PCARLF, PCARNO, PCARRT, PCARSD, PCARSH, PCARST = [0.0] * 6
     PLIGLF, PLIGNO, PLIGRT, PLIGSD, PLIGSH, PLIGST = [0.0] * 6
     PLIPLF, PLIPNO, PLIPRT, PLIPSH, PLIPST = [0.0] * 5
@@ -41,29 +28,31 @@ def INCOMP(DYNAMIC,
 #***********************************************************************
 #***********************************************************************
 #     Run Initialization - Called once per simulation
-#***********************************************************************              4
-    if DYNAMIC == RUNINIT:
+#***********************************************************************
+    if DYNAMIC == RC.RUNINIT:
 #-----------------------------------------------------------------------
 #     Read INP file
 #-----------------------------------------------------------------------
         #CALL GETLUN('FILEIO', LUNIO)
         #OPEN (LUNIO, FILE = FILEIO,STATUS = 'OLD',IOSTAT=ERR)
-        if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILEIO,0)
+        if ERR != 0: ERROR(ERRKEY,ERR,FILEIO,0)
         LNUM = 0
 #-----------------------------------------------------------------------
 #    Find and read 2ND Cultivar Section
 #-----------------------------------------------------------------------
         SECTION = '*CULTI'
-        #CALL FIND(LUNIO, SECTION, LINC, FOUND) ; LNUM = LNUM + LINC
+        LINC, FOUND = FIND(LUNIO, SECTION)
+        LNUM = LNUM + LINC
 
         SECTION = '*CULTI'
-        #CALL FIND(LUNIO, SECTION, LINC, FOUND) ; LNUM = LNUM + LINC
+        LINC, FOUND = FIND(LUNIO, SECTION)
+        LNUM = LNUM + LINC
         if FOUND == 0:
-            #CALL ERROR(SECTION, 42, FILEIO, LNUM)
+            ERROR(SECTION, 42, FILEIO, LNUM)
         else:
             #READ(LUNIO,'(126X,2F6.0)',IOSTAT=ERR) SDPRO, SDLIP
             LNUM = LNUM + 1
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILEIO,LNUM)
+            if ERR != 0: ERROR(ERRKEY,ERR,FILEIO,LNUM)
 
         #CLOSE (LUNIO)
 
@@ -72,7 +61,7 @@ def INCOMP(DYNAMIC,
 #-----------------------------------------------------------------------
         #CALL GETLUN('FILEC', LUNCRP)
         #OPEN (LUNCRP,FILE = FILECC, STATUS = 'OLD',IOSTAT=ERR)
-        if ERR <= 0: #CALL ERROR(ERRKEY,ERR,FILECC,0)
+        if ERR <= 0: ERROR(ERRKEY,ERR,FILECC,0)
         LNUM = 0
 #-----------------------------------------------------------------------
 #    Find and Read Respiration Section
@@ -82,59 +71,56 @@ def INCOMP(DYNAMIC,
 #     of each line.
 #-----------------------------------------------------------------------
         SECTION = '!*RESP'
-        #CALL FIND(LUNCRP, SECTION, LINC, FOUND) ; LNUM = LNUM + LINC
+        LINC, FOUND = FIND(LUNCRP, SECTION)
+        LNUM = LNUM + LINC
         if FOUND == 0:
-            #CALL ERROR(SECTION, 42, FILECC, LNUM)
+            ERROR(SECTION, 42, FILECC, LNUM)
         else:
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
             #READ(C80,'(F6.0)',IOSTAT=ERR) RNO3C
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
 
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
             #READ(C80,'(5F6.0)',IOSTAT=ERR) RCH2O, RLIP, RLIG, ROA, RMIN
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
 
         SECTION = '!*PLAN'
-        #CALL FIND(LUNCRP, SECTION, LINC, FOUND) ; LNUM = LNUM + LINC
+        LINC, FOUND = FIND(LUNCRP, SECTION)
+        LNUM = LNUM + LINC
         if FOUND == 0:
-            #CALL ERROR(SECTION, 42, FILECC, LNUM)
+            ERROR(SECTION, 42, FILECC, LNUM)
         else:
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
             #READ(C80,'(F6.0,12X,F6.0)',IOSTAT=ERR) PROLFI, PROSTI
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
 
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
             #READ(C80,'(F6.0,12X,F6.0)',IOSTAT=ERR) PRORTI, PROSHI
-            if ERR != 0:  #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            if ERR != 0:  ERROR(ERRKEY,ERR,FILECC,LNUM)
 
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
             #READ(C80,'(F6.0)',IOSTAT=ERR) SDPROS
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
 
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
-            #READ(C80,'(6F6.0)',IOSTAT=ERR)
-#&          PCARLF, PCARST, PCARRT, PCARSH, PCARSD, PCARNO
-            if ERR !=0:  #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+            #READ(C80,'(6F6.0)',IOSTAT=ERR) PCARLF, PCARST, PCARRT, PCARSH, PCARSD, PCARNO
+            if ERR !=0:  ERROR(ERRKEY,ERR,FILECC,LNUM)
 
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
-            #READ(C80,'(5F6.0)',IOSTAT=ERR)
-#&          PLIPLF, PLIPST, PLIPRT, PLIPSH, PLIPNO
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+            #READ(C80,'(5F6.0)',IOSTAT=ERR) PLIPLF, PLIPST, PLIPRT, PLIPSH, PLIPNO
+            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
 
-#            READ(C80,'(6F6.0)',IOSTAT=ERR)
-#&          PLIGLF, PLIGST, PLIGRT, PLIGSH, PLIGSD, PLIGNO
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+#            READ(C80,'(6F6.0)',IOSTAT=ERR) PLIGLF, PLIGST, PLIGRT, PLIGSH, PLIGSD, PLIGNO
+            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
 
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
-            #READ(C80,'(6F6.0)',IOSTAT=ERR)
-#&          POALF, POAST, POART, POASH, POASD, POANO
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+            #READ(C80,'(6F6.0)',IOSTAT=ERR) POALF, POAST, POART, POASH, POASD, POANO
+            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
 
-            #CALL IGNORE(LUNCRP,LNUM,ISECT,C80)
-            #READ(C80,'(6F6.0)',IOSTAT=ERR)
-#&          PMINLF, PMINST, PMINRT, PMINSH, PMINSD, PMINNO
-            if ERR != 0: #CALL ERROR(ERRKEY,ERR,FILECC,LNUM)
+            LNUM,ISECT,C80 = IGNORE(LUNCRP,LNUM)
+            #READ(C80,'(6F6.0)',IOSTAT=ERR) PMINLF, PMINST, PMINRT, PMINSH, PMINSD, PMINNO
+            if ERR != 0: ERROR(ERRKEY,ERR,FILECC,LNUM)
 
             #CLOSE (LUNCRP)
 
@@ -142,44 +128,38 @@ def INCOMP(DYNAMIC,
 #***********************************************************************
 #     Seasonal initialization - run once per season
 #***********************************************************************
-        elif DYNAMIC == SEASINIT:
+    elif DYNAMIC == RC.SEASINIT:
 #-----------------------------------------------------------------------
 #     COMPUTE RESPIRATION COEFFICIENTS BASED ON PLANT COMPOSITION
 #-----------------------------------------------------------------------
-#
-            AGRLF  = PLIPLF*RLIP + PLIGLF*RLIG + POALF*ROA \
-                   + PMINLF*RMIN + PCARLF*RCH2O
-            AGRSTM = PLIPST*RLIP + PLIGST*RLIG + POAST*ROA \
-                   + PMINST*RMIN + PCARST*RCH2O
-            AGRRT  =  PLIPRT*RLIP + PLIGRT*RLIG + POART*ROA \
-                   + PMINRT*RMIN + PCARRT*RCH2O
-            AGRNOD =  PLIPNO*RLIP + PLIGNO*RLIG + POANO*ROA  \
-                   + PMINNO*RMIN + PCARNO*RCH2O
-
+        AGRLF  = PLIPLF*RLIP + PLIGLF*RLIG + POALF*ROA \
+               + PMINLF*RMIN + PCARLF*RCH2O
+        AGRSTM = PLIPST*RLIP + PLIGST*RLIG + POAST*ROA \
+               + PMINST*RMIN + PCARST*RCH2O
+        AGRRT  =  PLIPRT*RLIP + PLIGRT*RLIG + POART*ROA \
+               + PMINRT*RMIN + PCARRT*RCH2O
+        AGRNOD =  PLIPNO*RLIP + PLIGNO*RLIG + POANO*ROA  \
+               + PMINNO*RMIN + PCARNO*RCH2O
 #-----------------------------------------------------------------------
 #     AGRVG2, AGRSH2, AGRSD2 include protein component of vegetative
 #     growth cost
 #-----------------------------------------------------------------------
-            AGRVG  = AGRLF * FRLF + AGRRT * FRRT + AGRSTM * FRSTM
-            AGRVG2 = AGRVG + (FRLF*PROLFI+FRRT*PRORTI+FRSTM*PROSTI)*RNO3C
+        AGRVG  = AGRLF * FRLF + AGRRT * FRRT + AGRSTM * FRSTM
+        AGRVG2 = AGRVG + (FRLF*PROLFI+FRRT*PRORTI+FRSTM*PROSTI)*RNO3C
 
-#-----------------------------------------------------------------------
-            AGRSH1 =  PLIPSH*RLIP + PLIGSH*RLIG + POASH*ROA \
-                   + PMINSH*RMIN + PCARSH*RCH2O
-            AGRSH2 =  AGRSH1 + PROSHI*RNO3C
+#-------------------------------------------------------------------
+        AGRSH1 =  PLIPSH*RLIP + PLIGSH*RLIG + POASH*ROA \
+               + PMINSH*RMIN + PCARSH*RCH2O
+        AGRSH2 =  AGRSH1 + PROSHI*RNO3C
 
-#-----------------------------------------------------------------------
-            SDPROR = (SDPRO - SDPROS) / ( SDLIP + PCARSD )
-            AGRSD1 = PMINSD*RMIN + PLIGSD*RLIG + POASD*ROA \
-                   + (SDLIP*RLIP + PCARSD*RCH2O)*(1. - SDPROR)
-            AGRSD2 = AGRSD1 + SDPRO*RNO3C
+#-------------------------------------------------------------------
+        SDPROR = (SDPRO - SDPROS) / ( SDLIP + PCARSD )
+        AGRSD1 = PMINSD*RMIN + PLIGSD*RLIG + POASD*ROA \
+               + (SDLIP*RLIP + PCARSD*RCH2O)*(1. - SDPROR)
+        AGRSD2 = AGRSD1 + SDPRO*RNO3C
 
-#***********************************************************************
-#***********************************************************************
-#     END OF DYNAMIC IF CONSTRUCT
-#***********************************************************************
-#-----------------------------------------------------------------------
-    return
+    return (AGRLF, AGRNOD, AGRRT, AGRSD1, AGRSD2, AGRSH1, AGRSH2, AGRSTM,
+            AGRVG, AGRVG2, SDPROR)
 #=======================================================================
 
 #-----------------------------------------------------------------------

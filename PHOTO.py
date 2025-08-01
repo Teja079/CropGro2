@@ -1,19 +1,19 @@
 # =======================================================================
-#   PHOTO, Subroutine, K.J.Boote, J.W.Jones, G. Hoogenboom
+#   PHOTO
 #   Compute daily photosynthetic using canopy (C) method.
 # -----------------------------------------------------------------------
 #   Called from:   Main
 #   Calls:         PHOTIP
 # =======================================================================
-from ModuleDefs import *
-import math
-from DSSATUtils import curv as CURV
-
 def PHOTO(CONTROL,
      BETN, CO2, DXR57, EXCESS, KCAN, KC_SLOPE,       #Input
      NR5, PAR, PStres1, SLPF, RNITP, SLAAD,          #Input
      SWFAC, TDAY, XHLAI, XPOD,                       #Input
      AGEFAC, PG):                                    #Output
+
+    from ModuleDefs import RunConstants as RC
+    import math
+    # from DSSATUtils import curv as CURV
 
     #IMPLICIT NONE
     #SAVE
@@ -53,7 +53,7 @@ def PHOTO(CONTROL,
     # C***********************************************************************
     # C     Run Initialization - Called once per simulation
     # C***********************************************************************
-    if DYNAMIC == RUNINIT:
+    if DYNAMIC == RC.RUNINIT:
         PHOTIP(FILEIO,CCEFF, CCMAX, CCMP, FNPGN, FNPGT, LMXSTD, LNREF, PARMAX,
                PGREF, PHTHRS10, PHTMAX, ROWSPC, TYPPGN, TYPPGT, XPGSLW, YPGSLW)
     #-----------------------------------------------------------------------
@@ -70,7 +70,7 @@ def PHOTO(CONTROL,
     #***********************************************************************
     #     Seasonal initialization - run once per season
     #***********************************************************************
-    elif DYNAMIC == SEASINIT:
+    elif DYNAMIC == RC.SEASINIT:
     #-----------------------------------------------------------------------
         AGEFAC  = 1.0
         CUMSTR  = 0.0
@@ -81,7 +81,7 @@ def PHOTO(CONTROL,
     #***********************************************************************
     #     Daily rate calculations
     #***********************************************************************
-    elif DYNAMIC == RATE:
+    elif DYNAMIC == RC.RATE:
     #-----------------------------------------------------------------------
     #     Calculate maximum photosynthesis as function of PAR, g CH2O/m2
     #-----------------------------------------------------------------------
