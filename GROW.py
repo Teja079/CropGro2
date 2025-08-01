@@ -8,8 +8,8 @@
 # C  Calls:      IPGROW, STRESS
 # C              ERROR
 # C=======================================================================
-from ERROR import ERROR
-from ModuleDefs import *
+
+
 def GROW(CONTROL, ISWITCH, DYNAMIC, SOILPROP,
     AGEFAC, CADLF, CADST, CRUSLF, CRUSRT, CRUSSH,     #Input
     CRUSST, DISLA, F, FILECC, FRLF, FRSTM,            #Input
@@ -24,6 +24,12 @@ def GROW(CONTROL, ISWITCH, DYNAMIC, SOILPROP,
     MDATE, YRPLT,                                     #Input
     SWIDOT, WLFDOT, WSHIDT, WTNFX, XHLAI):     #Input/output
 
+    import numpy as np
+    from ERROR import ERROR
+    from ModuleDefs import RunConstants as RC, ResidueType, NL, NELEM, N
+    from WARNING import WARNING
+    from ERROR import ERROR
+
     SENESCE = ResidueType()
     ERRKEY = 'GROW  '
     FILEIO  = CONTROL.FILEIO
@@ -36,11 +42,112 @@ def GROW(CONTROL, ISWITCH, DYNAMIC, SOILPROP,
 
     NLAYR  = SOILPROP.NLAYR
 
-    
+    PLME = np.full(1, ' ', dtype='U1')
+    XPODF = np.array('  ', dtype='U2')
+    SenWt = np.zeros(NL + 1)
+    SenE = np.zeros((NL + 1, NELEM))
+    SenLig = np.zeros(NL + 1)
+
+    CropStatus : int = -99
+
+    WTPSD : float = -99.0
+    PLTPOP : float = -99.0
+    ALPHL : float = -99.0
+    ALPHS : float = -99.0
+    ALPHR : float = -99.0
+    ALPHSH : float = -99.0
+    WTFSD : float = -99.0
+    SDWTPL : float = -99.0
+    PROLFI : float = -99.0
+    PROSTI : float = -99.0
+    PRORTI : float = -99.0
+    SDPRO : float = -99.0
+    CPFLF : float = -99.0
+    CPFSTM : float = -99.0
+    CPFRT : float = -99.0
+    CPFNOD : float = -99.0
+    CPFSH1 : float = -99.0
+    CPFSD1 : float = -99.0
+    WTLF : float = -99.0
+    STMWT : float = -99.0
+    RTWT : float = -99.0
+    SHELWT : float = -99.0
+    SDWT : float = -99.0
+    WTLSD : float = -99.0
+    WTCSD : float = -99.0
+    XPOD : float = -99.0
+    TOTWT : float = -99.0
+    TOPWT : float = -99.0
+    PODWT : float = -99.0
+    DWNOD : float = -99.0
+    TGROW : float = -99.0
+    CLW : float = -99.0
+    CSW : float = -99.0
+    RHOL : float = -99.0
+    RHOS : float = -99.0
+    RHOR : float = -99.0
+    RHOSH : float = -99.0
+    WCRLF : float = -99.0
+    WCRST : float = -99.0
+    WCRRT : float = -99.0
+    WCRSH : float = -99.0
+    WTLO : float = -99.0
+    WTSO : float = -99.0
+    WTRO : float = -99.0
+    WTSHO : float = -99.0
+    WTSDO : float = -99.0
+    WTNOO : float = -99.0
+    PCNL : float = -99.0
+    PROLFF : float = -99.0
+    PCNST : float = -99.0
+    PROSTF : float = -99.0
+    PCNRT : float = -99.0
+    PCNSH : float = -99.0
+    PCNSD : float = -99.0
+    WTNLF : float = -99.0
+    WTNST : float = -99.0
+    WTNRT : float = -99.0
+    WTNSH : float = -99.0
+    WTNSD : float = -99.0
+    PRONOD : float = -99.0
+    WTNLA : float = -99.0
+    WTNSA : float = -99.0
+    WTNRA : float = -99.0
+    WTNSHA : float = -99.0
+    WTNSDA : float = -99.0
+    DWNODA : float = -99.0
+    NTOVR : float = -99.0
+    WTNLO : float = -99.0
+    WTNSO : float = -99.0
+    WTNRO : float = -99.0
+    WTNSHO : float = -99.0
+    WTNSDO : float = -99.0
+    WTNNO : float = -99.0
+    WTNMOB : float = -99.0
+    WTNUP : float = -99.0
+    PCNMIN : float = -99.0
+    PRORTF : float = -99.0
+    PROSHF : float = -99.0
+    PCARSH : float = -99.0
+    PCARST : float = -99.0
+    PLIGLF : float = -99.0
+    PLIGNO : float = -99.0
+    PLIGRT : float = -99.0
+    PLIGSH : float = -99.0
+    PLIGST : float = -99.0
+    SLA : float = -99.0
+    LAIMX : float = -99.0
+    AREALF : float = -99.0
+    PUNCSD : float = -99.0
+    PUNCTR : float = -99.0
+    PUNDOT : float = -99.0
+    SDPDOT : float = -99.0
+    SEEDNO : float = -99.0
+    ROWSPC : float = -99.0
     # !***********************************************************************
     # !     Run Initialization - Called once per simulation
     # !***********************************************************************
-    if DYNAMIC == RUNINIT:
+    if DYNAMIC == RC.RUNINIT:
         (CROP,ALPHL,  ALPHR,  ALPHS,  ALPHSH,
         PCARLF, PCARST, PCARRT, PCARSH, PCARSD, PCARNO,
         PLIGLF, PLIGST, PLIGRT, PLIGSH, PLIGSD, PLIGNO,
@@ -75,7 +182,7 @@ def GROW(CONTROL, ISWITCH, DYNAMIC, SOILPROP,
     #C-----------------------------------------------------------------------
     #  CALCULATE PERCENT NITROGEN IN LEAVES AT END OF SEASON
         PCNMIN = PROLFF * 16.0
-    elif(DYNAMIC == SEASINIT):
+    elif(DYNAMIC == RC.SEASINIT):
         ALFDOT = 0.0
         AREALF = 0.0
         AREAH  = 0.0
@@ -188,7 +295,7 @@ def GROW(CONTROL, ISWITCH, DYNAMIC, SOILPROP,
 # !     EMERGENCE CALCULATIONS - Performed once per season upon emergence
 # !         or transplanting of plants
 # !***********************************************************************
-    elif DYNAMIC == EMERG:
+    elif DYNAMIC == RC.EMERG:
         WLDOT  = 0.0
         WSDOT  = 0.0
         WRDOT  = 0.0
@@ -272,7 +379,7 @@ def GROW(CONTROL, ISWITCH, DYNAMIC, SOILPROP,
     #***********************************************************************
     #     Daily integration
     #***********************************************************************
-    elif DYNAMIC == INTEGR:
+    elif DYNAMIC == RC.INTEGR:
         NLPEST = 0.0    #CHP - N loss due to pest damage
         GROWTH = WLDOTN + WSDOTN + WRDOTN + WSHDTN + WSDDTN + NODGR
         GRWRES = (WLDOTN*CPFLF + WSDOTN*CPFSTM + WRDOTN * CPFRT + NODGR*CPFNOD +
@@ -294,12 +401,12 @@ def GROW(CONTROL, ISWITCH, DYNAMIC, SOILPROP,
 
         if WTLF > 1.E-4:
             WLDOT = WLDOT + (CADLF+NADLF/0.16) * (1. - min(1.0,(SLDOT+WLIDOT+WLFDOT)/WTLF))
-            ADD = (CADLF+NADLF/0.16) * (1. - MIN(1.0,(SLDOT+WLIDOT+WLFDOT)/WTLF))
+            ADD = (CADLF+NADLF/0.16) * (1. - min(1.0,(SLDOT+WLIDOT+WLFDOT)/WTLF))
             ShutMob = ShutMob - ADD * 10.             #kg/ha
         else:
             ADD = 0.0
 
-         if WLDOT < 0.0:
+        if WLDOT < 0.0:
            WLDOT = min(WLDOT, -WTLF)
 
         # -----------------------------------------------------------------------
@@ -316,7 +423,7 @@ def GROW(CONTROL, ISWITCH, DYNAMIC, SOILPROP,
             ADD = 0.0
 
         if WSDOT < 0.0:
-            WSDOT = max(WSDOT, -TMWT)
+            WSDOT = max(WSDOT, -STMWT)
 
         # -----------------------------------------------------------------------
         #     Net root growth rate
@@ -855,6 +962,13 @@ def STRESS(
     TOTWT, TURFAC, WTLF, YRDOY, YRPLT,           # Input
     MDATE,                                       # Input/Output
 ):
+    import numpy as np
+    from ERROR import ERROR
+    from ModuleDefs import RunConstants as RC, ResidueType, NL, NELEM, N
+    from WARNING import WARNING
+    from ERROR import ERROR
+    from DATES import YR_DOY
+
     """
     Handles plant stress effects, setting plant weights and termination conditions.
     """
@@ -869,6 +983,8 @@ def STRESS(
     RTWT = max(0.0, RTWT)
     PODWT = max(0.0, PODWT)
     DWNOD = max(0.0, DWNOD)
+
+    TIMDIF: int = -99
 
     # If the plant dies, set the maturity date and update crop status
     if MDATE < 0:
@@ -903,6 +1019,7 @@ def STRESS(
 # C  Calls  : FIND, ERROR, IGNORE
 # C=======================================================================
 def IPGROW(FILEIO, FILECC):
+    from ERROR import ERROR
     from READS import FIND, IGNORE
     ERRKEY = 'IPGROW'
     try:

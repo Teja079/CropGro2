@@ -12,8 +12,9 @@ NCOHORTS: int = 300   # Maximum number of cohorts
 NPHS: int = 13
 MaxFiles : int = 500  # Maximum number of output files
 EvaluateNum : int = 40
-NELEM    = 3   #Number of elements modeled (currently N & P)
+NELEM : int   = 3   #Number of elements modeled (currently N & P)
 # Note: set NELEM to 3 for now so Century arrays will match
+N : int   = 1
 
 PI = 3.14159265
 RAD=PI/180.0
@@ -44,6 +45,8 @@ class RunConstants:
     OUTPUT : int = 5
     SEASEND : int = 6
     ENDRUN : int = 7
+
+
 
 # MAKEFILEW VARIABLES
 FirstWeatherDate : int = -99
