@@ -6,14 +6,15 @@
 #=======================================================================
 #
 
+
 def HRES_CGRO(CONTROL, CROP, DLAYR, DWNOD, HARVFRAC, NLAYR,
               PCONC_SHUT, PCONC_ROOT, PCONC_SHEL, PCONC_SEED,
               PLIGLF, PLIGNO, PLIGRT, PLIGSD, PLIGSH, PLIGST,
               RLV, RTWT, SDWT, SENESCE, SHELWT, STMWT, WTLF,
               WTNLF, WTNNOD, WTNRT, WTNSD, WTNSH, WTNST):
     import numpy as np
+    from ModuleDefs import ResidueType
     from fortranformat._edit_descriptors import P
-
     from ModuleDefs import N, NL, NELEM
 #
 # !-------------------------------------------------------------------------
@@ -34,7 +35,7 @@ def HRES_CGRO(CONTROL, CROP, DLAYR, DWNOD, HARVFRAC, NLAYR,
 #       REAL PConc_Shut, PConc_Root, PConc_Shel, PConc_Seed
 #
 # !     Output variables
-    HARVRES = np.empty(NLAYR, dtype=object)
+    HARVRES = ResidueType()
 #       Type (ResidueType) SENESCE
 #       TYPE (ControlType) CONTROL
 #
@@ -75,7 +76,7 @@ def HRES_CGRO(CONTROL, CROP, DLAYR, DWNOD, HARVFRAC, NLAYR,
 
 #
 # !       Add weight of seeds not harvested
-        SDRES = max(0.0, SDWT * 10. * (1. - HARVFRAC[0]))
+        SDRES = max(0.0, SDWT * 10. * (1. - HARVFRAC[1]))
 #
 # !       Add weight of shells (100% assumed to remain in field)
         SHLRES = max(0.0, SHELWT * 10.0)
@@ -83,9 +84,9 @@ def HRES_CGRO(CONTROL, CROP, DLAYR, DWNOD, HARVFRAC, NLAYR,
         HResWt[SRFC] = LFRES + STMRES + SDRES + SHLRES
 #
 # !       N in residue
-        HResE[SRFC, N] = ((WTNLF + WTNST) * 10. * (1. - HARVFRAC[1])
-                       + WTNSD * 10. * (1. - HARVFRAC[0])
-                       + WTNSH * 10.)
+        HResE[SRFC, N] = ((WTNLF + WTNST) * 10.0 * (1.0 - HARVFRAC[2])
+                       + WTNSD * 10.0 * (1.0 - HARVFRAC[1])
+                       + WTNSH * 10.0)
 
         if N_ELEMS > 1:
 # !         P in residue
