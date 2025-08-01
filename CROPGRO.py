@@ -34,6 +34,7 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
     from VEGGR import VEGGR
     from RESPIR import RESPIR
     from PlantNBal import PlantNBal
+    from PODDET import PODDET
 
     BETN    : float = -99.0
     DXR57   : float = -99.0
@@ -147,6 +148,48 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
     PODNO  : float = -99.0
     PODWTD : float = -99.0
     RWUEP1 : float = -99.0
+    AGEFAC : float = -99.0
+    F      : float = -99.0
+    FRLF   : float = -99.0
+    FRSTM  : float = -99.0
+    POTCAR : float = -99.0
+    POTLIP : float = -99.0
+    SDPROR : float = -99.0
+    FRRT   : float = -99.0
+    PG     : float = -99.0
+    AGRSH1 : float = -99.0
+    PCH2O  : float = -99.0
+    CMOBMX : float = -99.0
+    R30C2  : float = -99.0
+    RES30C : float = -99.0
+    RNO3C  : float = -99.0
+    RNH4C  : float = -99.0
+    RFIXN  : float = -99.0
+    PROLFI : float = -99.0
+    PRORTI : float = -99.0
+    PROSTI : float = -99.0
+    FRCNOD : float = -99.0
+    TTFIX  : float = -99.0
+    AGRNOD : float = -99.0
+    CADPR1 : float = -99.0
+    PMINSD : float = -99.0
+    RMIN   : float = -99.0
+    RLIG   : float = -99.0
+    POASD  : float = -99.0
+    ROA    : float = -99.0
+    RLIP   : float = -99.0
+    RCH2O  : float = -99.0
+    PROSHI : float = -99.0
+    PLIPSH : float = -99.0
+    POASH  : float = -99.0
+    PMINSH : float = -99.0
+    PCARSH : float = -99.0
+    KSTRES : float = -99.0
+    SDWTAH : float = -99.0
+    PConc_Shut : float = -99.0
+    PConc_Root : float = -99.0
+    PConc_Shel : float = -99.0
+    PConc_Seed : float = -99.0
 
     SDDES = np.full(NCOHORTS, -99.0, dtype=float)
     SDNO = np.full(NCOHORTS, -99.0, dtype=float)
@@ -157,6 +200,8 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
     RLV = np.full(NL, -99.0, dtype=float)
     SENNOD = np.full(NL, -99.0, dtype=float)
     SENRT = np.full(NL, -99.0, dtype=float)
+    PUptake = np.full(NL, -99.0, dtype=float)
+    FracRts = np.full(NL, -99.0, dtype=float)
 
     NR5 : int = -99
     NOUTDO : int = -99
@@ -164,6 +209,8 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
 
     FILECC : str = ''
     FILEGC : str = ''
+    ECONO  : str = ''
+    DETACH : str = ''
 
 
     # CONTROL = ControlType()
@@ -232,7 +279,7 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
                 AGEFAC, PG
             ) = PHOTO(
                 CONTROL, BETN, CO2, DXR57, EXCESS, KCAN, KC_SLOPE, NR5, PAR,
-                PStres1, SLPF, RNITP, SLAAD, SWFAC, TDAY, XHLAI, XPOD
+                PSTRES1, SLPF, RNITP, SLAAD, SWFAC, TDAY, XHLAI, XPOD
             )
         # -----------------------------------------------------------------------
         (
@@ -240,7 +287,7 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
             NR5, NR7, NVEG0, PHTHRS, RSTAGE, RVSTGE, STGDOY, SeedFrac, TDUMX,
             TDUMX2, VegFrac, VSTAGE, YREMRG, YRNR1, YRNR2, YRNR3, YRNR5, YRNR7
         ) = PHENOL(
-            CONTROL, ISWITCH, DAYL, NSTRES, PStres2, SOILPROP, ST, SW, SWFAC,
+            CONTROL, ISWITCH, DAYL, NSTRES, PSTRES2, SOILPROP, ST, SW, SWFAC,
             TGRO, TMIN, TURFAC, XPOD, YRPLT
         )
         # -----------------------------------------------------------------------
@@ -848,17 +895,17 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
             # -----------------------------------------------------------------------
             # Plant phosphorus module
             # -----------------------------------------------------------------------
-            if ISWPHO in ('Y', 'H'):
-                (PConc_Shut, PConc_Root, PConc_Shel, PConc_Seed,
-                 PStres1, PStres2, PUptake, FracRts) = P_CGRO(
-                    DYNAMIC, ISWITCH,
-                    CROP, FILECC, MDATE, PCNVEG, PLTPOP, RLV,  # Input
-                    RootMob, RTDEP, RTWT, SDWT, SeedFrac,  # Input
-                    ShelMob, SHELWT, ShutMob, SOILPROP,  # Input
-                    SPi_AVAIL, STMWT, SWIDOT, VegFrac, WLIDOT,  # Input
-                    WRIDOT, WSHIDT, WSIDOT, WTLF, YRPLT,  # Input
-                    SENESCE  # I/O
-                )
+            # if ISWPHO in ('Y', 'H'):
+            #     (PConc_Shut, PConc_Root, PConc_Shel, PConc_Seed,
+            #      PStres1, PStres2, PUptake, FracRts) = P_CGRO(
+            #         DYNAMIC, ISWITCH,
+            #         CROP, FILECC, MDATE, PCNVEG, PLTPOP, RLV,  # Input
+            #         RootMob, RTDEP, RTWT, SDWT, SeedFrac,  # Input
+            #         ShelMob, SHELWT, ShutMob, SOILPROP,  # Input
+            #         SPi_AVAIL, STMWT, SWIDOT, VegFrac, WLIDOT,  # Input
+            #         WRIDOT, WSHIDT, WSIDOT, WTLF, YRPLT,  # Input
+            #         SENESCE  # I/O
+            #     )
 
             # -----------------------------------------------------------------------
             # Accumulate NAVL for growth, reduce PGAVL by protein re-synthesis cost
@@ -934,7 +981,7 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
                 NSTRES, PGAVL, PHTHRS, PHTIM, PNTIM, PUNCSD,  # Input
                 PUNCTR, RNITP, SDDES, SDGR, SHELWT, SW, SWFAC,  # Input
                 TDUMX, TGRO, TURADD, XFRT, YRDOY, YRNR1, YRNR2,  # Input
-                PStres2, YRPLT  # Input
+                PSTRES2, YRPLT  # Input
             )
 
             # -----------------------------------------------------------------------
@@ -989,7 +1036,7 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
                 DXR57, ECONO, FILECC, FILEGC, FNINL, FNINR,  # Input
                 FNINS, KCAN, NAVL, NDMNEW, NDMOLD,  # Input
                 NFIXN, NMINEA, NR1, PAR, PCH2O, PG, PGAVL,  # Input
-                PStres2, ROWSPC, RVSTGE, STMWT, TGRO,  # Input
+                PSTRES2, ROWSPC, RVSTGE, STMWT, TGRO,  # Input
                 TRNU, TURFAC, VSTAGE, WCRLF, WCRRT, WCRSH,  # Input
                 WCRST, WTLF, XLAI, YRDOY, YREMRG  # Input
             )
@@ -1012,14 +1059,14 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
             # -----------------------------------------------------------------------
             #     Call freeze damage routine if TMIN is less than FREEZ1 deg C
             # -----------------------------------------------------------------------
-            if TMIN < FREEZ1:
-                (MDATE, WLFDOT, CropStatus) = FREEZE(
-                    FREEZ2, IDETO, NOUTDO, NRUSLF, SLDOT,  # Input
-                    TMIN, WTLF, YRDOY, YRPLT,  # Input
-                    MDATE  # Input/Output
-                )
-            else:
-                WLFDOT = 0.0
+            # if TMIN < FREEZ1:
+            #     (MDATE, WLFDOT, CropStatus) = FREEZE(
+            #         FREEZ2, IDETO, NOUTDO, NRUSLF, SLDOT,  # Input
+            #         TMIN, WTLF, YRDOY, YRPLT,  # Input
+            #         MDATE  # Input/Output
+            #     )
+            # else:
+            #     WLFDOT = 0.0
 
             # -----------------------------------------------------------------------
             #     Call to root growth and rooting depth routine
@@ -1134,7 +1181,7 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
                     NSTRES, PGAVL, PHTHRS, PHTIM, PNTIM, PUNCSD,  # Input
                     PUNCTR, RNITP, SDDES, SDGR, SHELWT, SW, SWFAC,  # Input
                     TDUMX, TGRO, TURADD, XFRT, YRDOY, YRNR1, YRNR2,  # Input
-                    PStres2, YRPLT,  # Input
+                    PSTRES2, YRPLT,  # Input
                     AGRSD3, LAGSD, LNGPEG, NGRSD, NGRSH, PCTMAT,  # Output
                     PODNO, POTCAR, POTLIP, SDNO, SDVAR, SEEDNO,  # Output
                     SHELN, SHVAR, WSDDTN, WSHDTN, WTABRT, WTSD,  # Output
@@ -1159,18 +1206,18 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
                 # -----------------------------------------------------------------------
                 # Call P_CGRO function for phosphorus uptake modeling
                 # -----------------------------------------------------------------------
-                if ISWPHO in ('Y', 'H'):
-                    P_CGRO(
-                        DYNAMIC, ISWITCH,
-                        CROP, FILECC, MDATE, PCNVEG, PLTPOP, RLV,  # Input
-                        RootMob, RTDEP, RTWT, SDWT, SeedFrac,  # Input
-                        ShelMob, SHELWT, ShutMob, SOILPROP,  # Input
-                        SPi_AVAIL, STMWT, SWIDOT, VegFrac, WLIDOT,  # Input
-                        WRIDOT, WSHIDT, WSIDOT, WTLF, YRPLT,  # Input
-                        SENESCE,  # I/O
-                        PConc_Shut, PConc_Root, PConc_Shel, PConc_Seed,  # Output
-                        PStres1, PStres2, PUptake, FracRts  # Output
-                    )
+                # if ISWPHO in ('Y', 'H'):
+                #     P_CGRO(
+                #         DYNAMIC, ISWITCH,
+                #         CROP, FILECC, MDATE, PCNVEG, PLTPOP, RLV,  # Input
+                #         RootMob, RTDEP, RTWT, SDWT, SeedFrac,  # Input
+                #         ShelMob, SHELWT, ShutMob, SOILPROP,  # Input
+                #         SPi_AVAIL, STMWT, SWIDOT, VegFrac, WLIDOT,  # Input
+                #         WRIDOT, WSHIDT, WSIDOT, WTLF, YRPLT,  # Input
+                #         SENESCE,  # I/O
+                #         PConc_Shut, PConc_Root, PConc_Shel, PConc_Seed,  # Output
+                #         PStres1, PStres2, PUptake, FracRts  # Output
+                #     )
 
             # -----------------------------------------------------------------------
             # Write to Overview.out and summary.out files
@@ -1179,7 +1226,7 @@ def CROPGRO(CONTROL, ISWITCH,  EOP, HARVFRAC, NH4, NO3, SOILPROP, SPi_AVAIL,
                 CONTROL, ISWITCH,
                 AGEFAC, CANHT, CANNAA, CANWAA, CROP,  # Input
                 HARVFRAC, LAIMX, MDATE, NSTRES, PCLSD, PCNSD,  # Input
-                PODNO, PODWT, PStres1, PStres2, SDRATE, SDWT,  # Input
+                PODNO, PODWT, PSTRES1, PSTRES2, SDRATE, SDWT,  # Input
                 SEEDNO, STGDOY, SWFAC, TOPWT, TURFAC,  # Input
                 VSTAGE, WTNCAN, WTNFX, WTNSD, WTNST, WTNUP,  # Input
                 XLAI, RSTAGE, YREMRG, YRNR1, YRNR3, YRNR5,  # Input
