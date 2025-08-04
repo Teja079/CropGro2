@@ -24,13 +24,15 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
     # f80 = ff.FortranRecordReader('7X,F5.2,1X,F5.1,1X,F5.2,1X,F5.0,2(1X,F5.2),7X,A5,12X,F6.0')
     f80 = ff.FortranRecordReader('7X,F5.2,1X,F5.1,1X,F5.2,1X,F5.0,2(1X,F5.2),7X,A5')
     f85 = ff.FortranRecordReader('F6.0,6X,A200')
-    f86 = ff.FortranRecordReader('15F6.0')
+    # f86 = ff.FortranRecordReader('15F6.0') original
+    f86 = ff.FortranRecordReader('F5.0,9F6.0,5F7.0')
     f87 = ff.FortranRecordReader('/,F6.0,A200')
     f88 = ff.FortranRecordReader('F6.0,A200')
-    f89 = ff.FortranRecordReader('20(F6.0)')
-    f90 = ff.FortranRecordReader('(/,F6.0,A200)')
+    f89 = ff.FortranRecordReader('18(F6.0)')
+    # f90 = ff.FortranRecordReader('(/,F6.0,A200)')
+    f90 = ff.FortranRecordReader('(F6.0,A24)')
     f91 = ff.FortranRecordReader('F6.0,A200')
-    f92 = ff.FortranRecordReader('(20(F6.0))')
+    f92 = ff.FortranRecordReader('(4(F6.0))')
     f100 = ff.FortranRecordReader('8X, 3 (1X, F5.1)')
 
 #       IMPLICIT NONE
@@ -62,18 +64,27 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
     NLAYR : int = 0
 #       REAL CN, DMOD, KTRANS, SALB, SLDP, SLPF, SWCON, TEMP, TOTAW, U
 #       REAL SWAD, SWnew
-#       REAL, DIMENSION(NL) :: ADCOEF,  CEC, CLAY, DUL
+#       REAL, DIMENSION(NL) :: ADCOEF,  CEC, , DUL
 
-    DS = np.zeros(NL, dtype=float)
-    BD = np.zeros(NL, dtype=float)
+    DS = np.full(NL+1, -99.0, dtype=float)
+    BD = np.full(NL+1, -99.0, dtype=float)
+    CLAY = np.full(NL+1, -99.0, dtype=float)
     DLAYR = np.zeros(NL, dtype=float)
 
-    LL = np.zeros(NL, dtype=float)
-    OC = np.zeros(NL, dtype=float)
-    PH = np.zeros(NL, dtype=float)
+    LL = np.full(NL+1,-99.0, dtype=float)
+    DUL = np.full(NL+1,-99.0, dtype=float)
+    WR = np.full(NL+1,-99.0, dtype=float)
+    SWCN = np.full(NL+1,-99.0, dtype=float)
+    OC = np.full(NL+1,-99.0, dtype=float)
+    PH = np.full(NL+1,-99.0, dtype=float)
     SAND = np.zeros(NL, dtype=float)
-    SAT = np.zeros(NL, dtype=float)
-    SILT = np.zeros(NL, dtype=float)
+    SAT = np.full(NL+1,-99.0, dtype=float)
+    SILT = np.full(NL+1,-99.0, dtype=float)
+    STONES = np.full(NL+1,-99.0, dtype=float)
+    TOTN = np.full(NL+1,-99.0, dtype=float)
+    PHKCL = np.full(NL+1,-99.0, dtype=float)
+    CEC = np.full(NL+1,-99.0, dtype=float)
+    ADCOEF = np.full(NL+1,0.0, dtype=float)
 
     KG2PPM = np.zeros(NL, dtype=float)
     POROS = np.zeros(NL, dtype=float)
@@ -87,19 +98,26 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
     NH4 = np.zeros(NL, dtype=float)
 #
 # !     Second tier soils data:
-#       REAL, DIMENSION(NL) :: EXTP, TOTP, ORGP,  CACO3
-    CACO = np.zeros(NL, dtype=float)
-    EXTAL = np.zeros(NL, dtype=float)
-    EXTFE = np.zeros(NL, dtype=float)
-    EXTMN = np.zeros(NL, dtype=float)
-    EXMG = np.zeros(NL, dtype=float)
-    EXTS = np.zeros(NL, dtype=float)
-    SLEC = np.zeros(NL, dtype=float)
+    EXTP = np.full(NL+1,-99.0, dtype=float)
+    TOTP = np.full(NL+1,-99.0, dtype=float)
+    ORGP = np.full(NL+1,-99.0, dtype=float)
+    CACO3 = np.full(NL+1,-99.0, dtype=float)
+    CACO = np.full(NL+1,-99.0, dtype=float)
+    EXTAL = np.full(NL+1,-99.0, dtype=float)
+    EXTFE = np.full(NL+1,-99.0, dtype=float)
+    EXTMN = np.full(NL+1,-99.0, dtype=float)
+    TOTBAS = np.full(NL+1,-99.0, dtype=float)
+    PTERMA = np.full(NL+1,-99.0, dtype=float)
+    PTERMB = np.full(NL+1,-99.0, dtype=float)
+    EXK = np.full(NL+1,-99.0, dtype=float)
+    EXMG = np.full(NL+1,-99.0, dtype=float)
+    EXNA = np.full(NL+1,-99.0, dtype=float)
+    EXTS = np.full(NL+1,-99.0, dtype=float)
+    SLEC = np.full(NL+1,-99.0, dtype=float)
+    EXCA = np.full(NL+1,-99.0, dtype=float)
+    SASC = np.full(NL+1,-99.0, dtype=float)
+    SAEA = np.full(NL+1,-99.0, dtype=float)
 
-
-#       REAL, DIMENSION(NL) ::  TOTBAS, PTERMA
-#       REAL, DIMENSION(NL) :: PTERMB, EXK, EXNA, , EXCA
-#
 # !     vanGenuchten parameters
     alphaVG = np.zeros(NL, dtype=float)
     mVG = np.zeros(NL, dtype=float)
@@ -238,7 +256,6 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 # !     Initialize soils variables
         NLAYR  = 0
         DLAYR  = -99.
-        DS     = -99.
         SLTXS  = '     '
         SLSOUR = '           '
         SLDESC = '                                                 '
@@ -251,41 +268,13 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         DMOD   = -99.
         SLPF   = -99.
         ETDR   = -99.
-        CLAY   = -99.
-        SILT   = -99.
         SAND   = 0.
-        STONES = -99.
-        OC     = -99.
-        SASC   = -99.
-        SAEA   = -99.
-        PH     = -99.
-        BD     = -99.
-        LL     = -99.
-        DUL    = -99.
-        SAT    = -99.
-        SWCN   = -99.
-        PHKCL  = -99.
-        CEC    = -99.
-
         U      = -99.
         SWCON  = -99.
         CN     = -99.
-        WR     = -99.
-        TOTN   = -99.
         TotOrgN= -99.
-        ADCOEF = 0.
 
         SMPX   = "-99  "
-        CACO3  = -99.
-        EXTP   = -99.
-        ORGP   = -99.
-        PTERMA = -99.
-        PTERMB = -99.
-        TOTP   = -99.
-        TOTBAS = -99.
-        EXCA   = -99.
-        EXK    = -99.
-        EXNA   = -99.
 #
 # !-----------------------------------------------------------------------
 # !     Should not need to run this unless soil water is being simulated.
@@ -323,18 +312,18 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         for L in range(1, NL+1):
             LINEXP, ISECT, CHARTEST = IGNORE(LUNIO, LNUM)
             try:
-                DS[L], CHAR = f86.read(CHARTEST)
+                DS[L], CHAR = f85.read(CHARTEST)
             except Exception as e:
                 print(f"Error opening file {LUNIO}: {e}")
                 return
 
             if L > 1 :
-                if DS[L] < DS[L-1]: return
+                if DS[L] < DS[L-1]: break
 
-            LNUM = LNUM + 1
-            LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
+            # LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
             (LL[L], DUL[L], SAT[L], WR[L], SWCN[L], BD[L],OC[L], CLAY[L],
              SILT[L], STONES[L], TOTN[L],PH[L], PHKCL[L], CEC[L], ADCOEF[L]) = f86.read(CHAR)
+            LNUM = LNUM + 1
 
             NLAYR = NLAYR + 1
 
@@ -349,13 +338,13 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
                 DS[L], CHAR = f88.read(CHARTEST)
 
             if L > 1:
-                if DS[L] < DS[L-1]: return
+                if DS[L] < DS[L-1]: break
 
             LNUM = LNUM + 1
 
             # Calcium carbonate is read as CACO (units: g/kg) and converted
             # to CACO3 (units: %).
-            LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
+            # LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
 
             (EXTP[L], TOTP[L], ORGP[L], CACO[L], EXTAL[L], EXTFE[L], EXTMN[L], TOTBAS[L],
              PTERMA[L],PTERMB[L], EXK[L], EXMG[L], EXNA[L], EXTS[L], SLEC[L], EXCA[L],
@@ -364,64 +353,67 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
             LNUM = LNUM + 1
 
 #           Third tier soils data (van Genuchten parameters):
-            for L in range (1, NLAYR+1):
+        for L in range (1, NLAYR+1):
 #           Need to read the blank line between soil tiers
-                LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
-                if L == 1:
-#           If number of layers = NL, need to read the blank line between soil tiers
-                    DS[L], CHAR = f90.read(CHAR)
-                else:
-                    DS[L], CHAR = f91.read(CHAR)
-
-                if L > 1:
-                    if DS[L] < DS[L-1]: return
-
+            if L == 1:
                 LNUM = LNUM + 1
-                LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
-                alphaVG[L], mVG[L], nVG[L], WCR[L] = f92.read(CHAR)
+            LINEXP, ISECT, CHARTEST = IGNORE(LUNIO, LNUM)
+            DS[L], CHAR = f90.read(CHARTEST)
+#             if L == 1:
+# #           If number of layers = NL, need to read the blank line between soil tiers
+#                 DS[L], CHAR = f90.read(CHARTEST)
+#             else:
+#                 DS[L], CHAR = f91.read(CHARTEST)
 
-                LNUM = LNUM + 1
+            if L > 1:
+                if DS[L] < DS[L-1]: break
+
+            # LNUM = LNUM + 1
+            # LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
+            alphaVG[L], mVG[L], nVG[L], WCR[L] = f92.read(CHAR)
+
+            LNUM = LNUM + 1
 #
 # !-----------------------------------------------------------------------
 # !     Find and read Initial Conditions section -- get initial inorganic
 # !       N for calculation of total organic N.
-                SECTION = '*INITI'
-                LNUM, FOUND = FIND (LUNIO, SECTION)
-                if FOUND == 0: ERROR (SECTION, 42, FILEIO, LNUM)
+        SECTION = '*INITI'
+        LNUM, FOUND = FIND (LUNIO, SECTION)
+        if FOUND == 0: ERROR (SECTION, 42, FILEIO, LNUM)
 
-                 # Read line before layer data -- ignore
-                LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
+         # Read line before layer data -- ignore
+        LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
 
-                LNUM = LNUM + 1
+        LNUM = LNUM + 1
 
-                NMSG = 0
-                for L in range (1, NLAYR+1):
-                    LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
-                    SW[L], NH4[L], NO3[L] = f100.read(CHAR)
+        NMSG = 0
+        for L in range (1, NLAYR+1):
+            LINEXP, ISECT, CHAR = IGNORE(LUNIO, LNUM)
+            SW[L], NH4[L], NO3[L] = f100.read(CHAR)
 
-                    LNUM = LNUM + 1
+            LNUM = LNUM + 1
 
-                    if SW[L] < LL[L]:
-                        if NMSG == 0:
-                            MSG[1] = "Initial soil water content < LL."
-                            MSG[2] = " "
-                            MSG[3] = "         FileX              SW @  Revised"
-                            MSG[4] = "Layer  Init SW       LL   AirDry  Init SW"
-                            NMSG = 4
-                        if L == 1:
-            #               Layer 1 - check for SW < air dry
-                            SWAD = 0.30 * LL[L]
-                            if SW[L] < SWAD:
-                                SWnew = SWAD
-                                NMSG = NMSG + 1
-                                MSG[NMSG] = f"{L:5}{SW[L]:9.3f}{LL[L]:9.3f}{SWAD:9.3f}{SWnew:9.3f}"
-                                SW[L] = SWnew
-                            else:
-            # !                 Layers 2 thru NLAYR
-                                SWnew = LL[L]
-                                NMSG = NMSG + 1
-                                MSG[NMSG] = "{:5d}{:9.3f}{:9.3f}{:9}{:9.3f}".format(L, SW[L], LL[L], '', SWnew)
-                                SW[L] = SWnew
+            if SW[L] < LL[L]:
+                if NMSG == 0:
+                    MSG[1] = "Initial soil water content < LL."
+                    MSG[2] = " "
+                    MSG[3] = "         FileX              SW @  Revised"
+                    MSG[4] = "Layer  Init SW       LL   AirDry  Init SW"
+                    NMSG = 4
+                if L == 1:
+    #               Layer 1 - check for SW < air dry
+                    SWAD = 0.30 * LL[L]
+                    if SW[L] < SWAD:
+                        SWnew = SWAD
+                        NMSG = NMSG + 1
+                        MSG[NMSG] = f"{L:5}{SW[L]:9.3f}{LL[L]:9.3f}{SWAD:9.3f}{SWnew:9.3f}"
+                        SW[L] = SWnew
+                    else:
+    # !                 Layers 2 thru NLAYR
+                        SWnew = LL[L]
+                        NMSG = NMSG + 1
+                        MSG[NMSG] = "{:5d}{:9.3f}{:9.3f}{:9}{:9.3f}".format(L, SW[L], LL[L], '', SWnew)
+                        SW[L] = SWnew
 
                 if NMSG > 0:
                     WARNING(NMSG, ERRKEY, MSG)
@@ -439,8 +431,8 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
                         NMSG = NMSG + 1
                         MSG[NMSG] = "{:5d}{:9.3f}{:9.3f}{:9.3f}".format(L, SW[L], SAT[L], SWnew)
                         SW[L] = SWnew
-                if NMSG > 0:
-                    WARNING(NMSG, ERRKEY, MSG)
+        if NMSG > 0:
+            WARNING(NMSG, ERRKEY, MSG)
 #
 #       CLOSE (LUNIO)
 #
@@ -466,7 +458,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         if SLPF < 1.E-4:
             SLPF = 1.0
         elif SLPF < 0.9999:
-            MSG[1] = 'Soil photosynthesis factor (SLPF) = {:F5.2})'.format(SLPF)
+            MSG[1] = 'Soil photosynthesis factor (SLPF) = {:5.2f})'.format(SLPF)
             WARNING(1,ERRKEY,MSG)
 
 # C     Initialize curve number (according to J.T. Ritchie) 1-JUL-97 BDB
