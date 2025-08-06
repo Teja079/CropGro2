@@ -59,7 +59,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #       CHARACTER*10 SLNO
 #       CHARACTER*11 SLSOUR
     TEXTURE = np.empty(NL, dtype='U12')
-#       CHARACTER*17 SOILLAYERTYPE(NL)
+    SOILLAYERTYPE = np.full(NL, ' ' * 17, dtype='U17')
 #       CHARACTER*50 SLDESC, TAXON
     SLDESC: str = ""
     TAXON: str  = ""
@@ -91,6 +91,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
     KG2PPM = np.zeros(NL, dtype=float)
     POROS = np.zeros(NL, dtype=float)
 #       REAL, DIMENSION(NL) :: SW, SWCN, TOTN, TotOrgN, WR
+    TotOrgN = np.zeros(NL, dtype=float)
     WCR = np.zeros(NL, dtype=float)
 # !     REAL, DIMENSION(NL) :: RGIMPF
     COARSE = np.bool(NL)
@@ -273,7 +274,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         U      = -99.
         SWCON  = -99.
         CN     = -99.
-        TotOrgN= -99.
+        TotOrgN.fill(-99.0)
 
         SMPX   = "-99  "
 #
@@ -723,7 +724,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
                 TotOrgN[L] = (TOTN[L]*1.E4 - NO3[L] - NH4[L]) / KG2PPM[L]
                 TotOrgN[L] = max(0.0, TotOrgN[L])
             else:
-                TotOrgN[L] = -99.
+                TotOrgN[L] = -99.0
 
 #       Remove this ksat estimation
 #       It causes problems when SAT and DUL are close. (KJB/JWJ - India workshop 2011)
