@@ -12,6 +12,7 @@ from DATES import *
 #-----------------------------------------------------------------------
 def WARNING(ICOUNT, ERRKEY, MESSAGE):
     from OPHEAD import MULTIRUN, HEADER
+    # from HEADER import HEADER
     from ModuleDefs import RunConstants, ControlType, GET_CONTROL
 
     w = WARNING
@@ -54,7 +55,9 @@ def WARNING(ICOUNT, ERRKEY, MESSAGE):
             if CONTROL.MULTI > 1:
                 MULTIRUN(RUN, 0) #From Header Module
             if Headers.RUN == RUN:
-                HEADER(RunConstants.SEASINIT, LUN, RUN)
+                if 'LUN' in locals() and not LUN.closed:
+                    LUN.close()
+                HEADER(RunConstants.SEASINIT, WarnOut, RUN)
                 w.FIRST = False
                 w.OLDRUN = RUN
 
@@ -62,11 +65,17 @@ def WARNING(ICOUNT, ERRKEY, MESSAGE):
             # Print header if this is a new run
             if OLDRUN != RUN and RUN != 0 and FILEIO != "":
                 if Headers.RUN == RUN:
-                    HEADER(RunConstants.SEASINIT, LUN, RUN)
+                    if 'LUN' in locals() and not LUN.closed:
+                        LUN.close()
+                    HEADER(RunConstants.SEASINIT, WarnOut, RUN)
                     w.OLDRUN = RUN
 
             # Print the warning message
             YEAR, DOY = YR_DOY(YRDOY)
+            if os.path.exists(WarnOut):
+                LUN = open(WarnOut, 'a')
+            else:
+                LUN = open(WarnOut, 'w')
             LUN.write(f"\n {ERRKEY}  YEAR DOY = {YEAR:4d} {DOY:3d}\n")
             for i in range(ICOUNT):
                 LUN.write(f" {MESSAGE[i]:78s}\n")

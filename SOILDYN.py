@@ -255,7 +255,6 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #
 # !     Initialize soils variables
         NLAYR  = 0
-        DLAYR  = -99.
         SLTXS  = '     '
         SLSOUR = '           '
         SLDESC = '                                                 '
