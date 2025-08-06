@@ -13,14 +13,15 @@
 #     ICOUNT = Headers.ICOUNT
 #     ShortCount = Headers.ShortCount
 #
-#     if hasattr(HEADER, "PREV_RUN"):
+#     if hasattr(HEADER, ["PREV_RUN", "NOHEADER"]):
 #         if RUN != HEADER.PREV_RUN:
 #             HEADER.NOHEADER = True
 #
 #     HEADER.PREV_RUN = RUN
 #
 #     if ICOUNT > 0:
-#         f.write('\n',Headers.Header[0])
+#         f.write('\n')
+#         f.write(Headers.Header[0])
 #     else:
 #         DATE_TIME = date_and_time()
 #         f500 = ff.FortranRecordWriter('"*DSSAT Cropping System Model Ver. ",I1,".",I1,".",I1,'
