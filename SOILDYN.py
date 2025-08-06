@@ -61,6 +61,8 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
     TEXTURE = np.empty(NL, dtype='U12')
 #       CHARACTER*17 SOILLAYERTYPE(NL)
 #       CHARACTER*50 SLDESC, TAXON
+    SLDESC: str = ""
+    TAXON: str  = ""
     NLAYR : int = 0
 #       REAL CN, DMOD, KTRANS, SALB, SLDP, SLPF, SWCON, TEMP, TOTAW, U
 #       REAL SWAD, SWnew
@@ -687,7 +689,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
             WARNING(NMSG,ERRKEY,MSG)
 
     # !     Define the type of soil layer.
-        CaCO3, PH, CEC, Clay, SOILLAYERTYPE = SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON)
+        CaCO3, PH, CEC, Clay, SOILLAYERTYP = SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON[0])
 
 # !     Warning message for Century
 # !      (non-sequenced runs or any first run)
