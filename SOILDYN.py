@@ -20,7 +20,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
     import numpy as np
 
     f60 = ff.FortranRecordReader('1X,A10, 2X, A11,1X,A5,1X,F5.0,1X,A50')
-    f70 = ff.FortranRecordReader('41X,A50')
+    f70 = ff.FortranRecordReader('41X,A49')
     # f80 = ff.FortranRecordReader('7X,F5.2,1X,F5.1,1X,F5.2,1X,F5.0,2(1X,F5.2),7X,A5,12X,F6.0')
     f80 = ff.FortranRecordReader('7X,F5.2,1X,F5.1,1X,F5.2,1X,F5.0,2(1X,F5.2),7X,A5')
     f85 = ff.FortranRecordReader('F6.0,6X,A200')
@@ -58,11 +58,10 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #       CHARACTER*5 SLTXS, SMPX
 #       CHARACTER*10 SLNO
 #       CHARACTER*11 SLSOUR
-    TEXTURE = np.empty(NL, dtype='U12')
+    TEXTURE = np.empty(NL+1, dtype='U12')
     SOILLAYERTYPE = np.full(NL, ' ' * 17, dtype='U17')
 #       CHARACTER*50 SLDESC, TAXON
     SLDESC: str = ""
-    TAXON: str  = ""
     NLAYR : int = 0
 #       REAL CN, DMOD, KTRANS, SALB, SLDP, SLPF, SWCON, TEMP, TOTAW, U
 #       REAL SWAD, SWnew
@@ -94,7 +93,8 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
     TotOrgN = np.zeros(NL, dtype=float)
     WCR = np.zeros(NL, dtype=float)
 # !     REAL, DIMENSION(NL) :: RGIMPF
-    COARSE = np.bool(NL)
+    COARSE = [False] * (NL + 1)
+
 #
 # !     Initial conditions (used to calculate TotOrgN from TOTN)
     NO3 = np.zeros(NL, dtype=float)
@@ -261,7 +261,6 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
         SLTXS  = '     '
         SLSOUR = '           '
         SLDESC = '                                                 '
-        TAXON  = '                                                 '
         SLNO   = '-99.      '
         LayerText = '        '
 
@@ -299,7 +298,8 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 
         LNUM = LNUM + 1
         LINEXP, ISECT, CHARTEST = IGNORE(LUNIO, LNUM)
-        TAXON = f70.read(CHARTEST)
+        # TAXON = f70.read(CHARTEST)
+        TAXON = CHARTEST[41:91]
         LNUM = LNUM + 1
 
 #-----------------------------------------------------------------------
@@ -651,6 +651,9 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #
 #       ENDDO   !End of soil layer loop.
 
+        TEXTURE[1] = 'Sand'
+        COARSE[1] = True
+
         NO_OC = False
         for L in range (1, NLAYR+1):
             if OC[L] < 1.E-3 and ISWWAT == 'Y':
@@ -690,7 +693,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
             WARNING(NMSG,ERRKEY,MSG)
 
     # !     Define the type of soil layer.
-        CaCO3, PH, CEC, Clay, SOILLAYERTYP = SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON[0])
+        CaCO3, PH, CEC, Clay, SOILLAYERTYPE = SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON)
 
 # !     Warning message for Century
 # !      (non-sequenced runs or any first run)
@@ -2081,22 +2084,19 @@ def SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON):
     import numpy as np
     from WARNING import WARNING
     from ModuleDefs import NL, ISWITCH
+    from UTILS import NINT
 #       USE ModuleDefs
 #       IMPLICIT NONE
 #       EXTERNAL UPCASE, LENSTRING, INFO
 #
 #       TYPE (SwitchType) , INTENT(IN) :: ISWITCH  !Simulation options
 #       INTEGER NLAYR, L, LENGTH, LEN1, LEN2, MULTI, LenString, I
-    PH = np.zeros(NL, dtype=float)
-    CaCO3 = np.zeros(NL, dtype=float)
-    DS = np.zeros(NL, dtype=float)
-    CaCO3 = np.zeros(NL, dtype=float)
-    # CaCO3 = [-99.0] * NL
-    CEC = np.zeros(NL, dtype=float)
-    CLAY = np.zeros(NL, dtype=float)
-#       CHARACTER*1  UPCASE
-#       CHARACTER*17 SOILLAYERTYPE(NL)
-    SOILLAYERTYPE = np.empty(NL, dtype='U17')
+    PH = np.zeros(NL+1, dtype=float)
+    CaCO3 = np.zeros(NL+1, dtype=float)
+    DS = np.zeros(NL+1, dtype=float)
+    CEC = np.zeros(NL+1, dtype=float)
+    CLAY = np.zeros(NL+1, dtype=float)
+    SOILLAYERTYPE = np.empty(NL+1, dtype='U17')
     # SOILLAYERTYPE = [' ' * 17 for _ in range(NLAYR)]
 #       CHARACTER*50 SLDESC, TAXON
 #       CHARACTER*7, PARAMETER :: ERRKEY = 'SOILLayerClass'
@@ -2108,7 +2108,7 @@ def SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON):
 #      First check soil name for occurrence of 'ANDOSOL', 'ANDISOL',
 #      'VOLCAN' or 'ANDEPT'.  These indicate volcanic soils.
     VOLCANIC = False
-    LENGTH = max(len(SLDESC), len(TAXON))
+    LENGTH = max(len(SLDESC.strip()), len(TAXON.strip()))
 
     SLDESC = SLDESC.upper()
     TAXON = TAXON.upper()
@@ -2158,7 +2158,7 @@ def SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON):
         MSG[1] = "Soil layer classifications (used for soil P model)"
         MSG[2] = "Layer Depth Soil_Layer_Type   Backup_Data"
         for L in range(1,NLAYR):
-            depth = round(DS[L])
+            depth = NINT(DS[L])
             layer_type = SOILLAYERTYPE[L].strip()
             if layer_type == 'CALCAREOUS':
                 MSG[L + 2] = f"{L+2:3d}{depth:7d}  {SOILLAYERTYPE[L]} CaCO3:{CaCO3[L]:6.2f}%"
