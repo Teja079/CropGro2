@@ -693,7 +693,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
             WARNING(NMSG,ERRKEY,MSG)
 
     # !     Define the type of soil layer.
-        CaCO3, PH, CEC, Clay, SOILLAYERTYPE = SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON)
+        CaCO3, PH, CEC, Clay, SOILLAYERTYPE = SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON,PH,CEC, CLAY,SOILLAYERTYPE)
 
 # !     Warning message for Century
 # !      (non-sequenced runs or any first run)
@@ -2080,10 +2080,10 @@ def SoilLayerText(DS, NLAYR):
 #-----------------------------------------------------------------------
 #     Define the type of soil layer.
 # -----------------------------------------------------------------------
-def SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON):
+def SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON,PH,CEC, CLAY,SOILLAYERTYPE):
     import numpy as np
     from WARNING import WARNING
-    from ModuleDefs import NL, ISWITCH
+    from ModuleDefs import NL
     from UTILS import NINT
 #       USE ModuleDefs
 #       IMPLICIT NONE
@@ -2091,11 +2091,11 @@ def SoilLayerClass(ISWITCH,MULTI, DS, NLAYR, SLDESC, TAXON):
 #
 #       TYPE (SwitchType) , INTENT(IN) :: ISWITCH  !Simulation options
 #       INTEGER NLAYR, L, LENGTH, LEN1, LEN2, MULTI, LenString, I
-    PH = np.zeros(NL+1, dtype=float)
-    CaCO3 = np.zeros(NL+1, dtype=float)
-    DS = np.zeros(NL+1, dtype=float)
-    CEC = np.zeros(NL+1, dtype=float)
-    CLAY = np.zeros(NL+1, dtype=float)
+    #PH = np.zeros(NL+1, dtype=float)
+    CaCO3 = np.full(NL+1,-99.0, dtype=float)
+    #DS = np.zeros(NL+1, dtype=float)
+    #CEC = np.zeros(NL+1, dtype=float)
+    #CLAY = np.zeros(NL+1, dtype=float)
     SOILLAYERTYPE = np.empty(NL+1, dtype='U17')
     # SOILLAYERTYPE = [' ' * 17 for _ in range(NLAYR)]
 #       CHARACTER*50 SLDESC, TAXON
