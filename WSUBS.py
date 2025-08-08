@@ -6,9 +6,6 @@
 #   Called by: WATBAL
 #   Calls    : ERROR, FIND
 # =======================================================================
-from ModuleDefs import RunConstants
-
-
 def IPWBAL(CONTROL, LL, NLAYR):
     from ModuleDefs import NL, RunConstants as RC, SAVE_data
     from READS import find
@@ -62,7 +59,7 @@ def IPWBAL(CONTROL, LL, NLAYR):
         IPWBAL.ICWD_INIT = ICWD
         SAVE_data.MGMT.ICWD = ICWD
 
-    elif DYNAMIC == RunConstants.SEASINIT:
+    elif DYNAMIC == RC.SEASINIT:
         SW = IPWBAL.SW_INIT
         ICWD = IPWBAL.ICWD_INIT
         ActWTD = ICWD

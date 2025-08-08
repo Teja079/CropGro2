@@ -713,7 +713,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 #       ENDIF     !End of IF block on MESOM & RNMODE
 #
 # !-----------------------------------------------------------------------
-        for L in range (1, NLAYR):
+        for L in range (1, NLAYR+1):
     #       Conversion from kg/ha to ppm (or mg/l).  Recalculate daily.
             KG2PPM[L] = 10.0 / (BD[L] * DLAYR[L])
             POROS[L]  = 1.0 - BD[L] / 2.65
@@ -883,7 +883,7 @@ def SOILDYN(CONTROL, ISWITCH,KTRANS, MULCH, SomLit, SomLitC, SW, TILLVALS,
 
         PUT_SOILPROP(SOILPROP)
 
-        if ISWWAT == 'N': return
+        if ISWWAT == 'N': return SOILPROP
 
         # PRINT_SOILPROP(SOILPROP)
 
