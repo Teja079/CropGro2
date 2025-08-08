@@ -364,17 +364,16 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
             RWUH = RWUH * DayRatio
 #
             (AGEFAC, EHR, LFMXSH, LFMXSL, PCNLSH, PCNLSL, PGHR, SLWSH,
-                SLWSL, T0HR, TCAN(H), THR, TSHR, TSURF, CONDSH, CONDSL, RA,
+                SLWSL, T0HR, TCAN[H], THR, TSHR, TSURF, CONDSH, CONDSL, RA,
                 RB, RSURF, Rnet, G, LH, LHEAT, SH, SHEAT, RBSH, RBSL, RBSS,
-                AGEQESL, CO2QESL, QEFFSL) = (
-                ETPHR( CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE,
+                AGEQESL, CO2QESL, QEFFSL) = ETPHR( CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE,
                 FNPGL, FNPGN, FRACSH, FRSHV, KDIRBL, LAISH, LAISHV, LAISL,
                 LAISLV, LLE,LMXREF, LNREF, LWIDTH, MEEVP, MEPHO, NLAYR,
                 NSLOPE, PARSH, PARSUN, QEREF, RABS, RCUTIC, REFHT,
-                RHUMHR(H), RNITP, RWUH, SHCAP, SLAAD, SLWREF,
-                SLWSLO, STCOND, SWE, TAIRHR(H), TA, TMIN, TYPPGL,
-                TYPPGN, WINDHR(H), XLAI, XLMAXT, YLMAXT, CCNEFF,
-                CICAD, CMXSF, CQESF, PGPATH))
+                RHUMHR[H], RNITP, RWUH, SHCAP, SLAAD, SLWREF,
+                SLWSLO, STCOND, SWE, TAIRHR[H], TA, TMIN, TYPPGL,
+                TYPPGN, WINDHR[H], XLAI, XLMAXT, YLMAXT, CCNEFF,
+                CICAD, CMXSF, CQESF, PGPATH)
 
 #          Integrate instantaneous canopy photoynthesis (µmol CO2/m2/s)
 #          and evapotranspiration (mm/h) to get daily values (g CO2/m2/d
@@ -437,7 +436,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
                     PCABRN = PCABSR
                     TEMPN = TAIRHR[H]
 
-                    for I in range(1,3)
+                    for I in range(1,3):
                         TSRFN[I] = TSURF[I,1]
 
                     #LPM 04DEC14 to include the surface temperature as output

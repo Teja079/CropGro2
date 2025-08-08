@@ -13,7 +13,7 @@
 #  Called by: WATBAL
 #  Calls:     None
 #=======================================================================
-from CropGro2.ModuleDefs import GET_float
+from ModuleDefs import GET_float
 
 
 def TRANS(DYNAMIC, MEEVP, CO2, CROP, EO, ET0, EVAP, KTRANS, WINDSP, XHLAI, WEATHER):
