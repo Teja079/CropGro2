@@ -10,8 +10,7 @@
 #             RNOFF   (File RNOFF.for)
 #             SATFLO  (File SATFLO.for)
 #=======================================================================
-def WATBAL(CONTROL, ISWITCH, ES, IRRAMT, SOILPROP, SWDELTX, TILLVALS, WEATHER, #Inputs
-            FLOODWAT, MULCH, SWDELTU): #Inputs/Outputs
+def WATBAL(CONTROL, ISWITCH, ES, IRRAMT, SOILPROP, SWDELTX, TILLVALS, WEATHER, FLOODWAT, MULCH, SWDELTU): #Inputs/Outputs
 
     from ModuleDefs import NL, RunConstants as RC, SAVE_data
     from WSUBS import IPWBAL, WTDEPT
@@ -594,25 +593,25 @@ def WATBAL(CONTROL, ISWITCH, ES, IRRAMT, SOILPROP, SWDELTX, TILLVALS, WEATHER, #
 #Test
 from ModuleDefs import ControlType, SwitchType, SoilType, NL, WeatherType
 
-CONTROL = ControlType()
-CONTROL.RNMODE = 'B'
-CONTROL.FILEIO = 'DSSAT48.INP'
-CONTROL.RUN = 1
-CONTROL.YRDOY = 2017274
-CONTROL.YRSIM = 2017274
-CONTROL.DYNAMIC = 2
-
-ISWITCH = SwitchType()
-
-
-ES = 0.0
-IRRAMT = 0.0
-SOILPROP = SoilType()
-SWDELTX = [0.0] * NL
-TILLVALS = ""
-WEATHER = WeatherType()
-FLOODWAT = ''
-MULCH = ''
-SWDELTU = []
-
-print(WATBAL(CONTROL, ISWITCH, ES, IRRAMT, SOILPROP, SWDELTX,TILLVALS, WEATHER, FLOODWAT, MULCH, SWDELTU))
+# CONTROL = ControlType()
+# CONTROL.RNMODE = 'B'
+# CONTROL.FILEIO = 'DSSAT48.INP'
+# CONTROL.RUN = 1
+# CONTROL.YRDOY = 2017274
+# CONTROL.YRSIM = 2017274
+# CONTROL.DYNAMIC = 1
+#
+# ISWITCH = SwitchType()
+#
+#
+# ES = 0.0
+# IRRAMT = 0.0
+# SOILPROP = SoilType()
+# SWDELTX = [0.0] * NL
+# TILLVALS = ""
+# WEATHER = WeatherType()
+# FLOODWAT = ''
+# MULCH = ''
+# SWDELTU = []
+#
+# print(WATBAL(CONTROL, ISWITCH, ES, IRRAMT, SOILPROP, SWDELTX,TILLVALS, WEATHER, FLOODWAT, MULCH, SWDELTU))

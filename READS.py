@@ -546,7 +546,7 @@ def FIND(fpath, NAME):
     NAME = NAME.upper()
 
     #     Loop to read through data file.
-    with open(fpath) as f:
+    with open(fpath,'a') as f:
         for line in f:
             line = line[0:len(NAME)].upper()
             #        String found, set FOUND to 1, and exit loop.

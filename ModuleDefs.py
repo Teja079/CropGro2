@@ -68,7 +68,8 @@ class OutputType:
 class ControlType:
     RNMODE = ' '
     CROP = ' '
-    MODEL, ENAME = ' ' * 2
+    ENAME = ' ' * 2
+    MODEL = ' ' * 2
     FILEX = ' '
     FILEIO = ' '
     DSSATP: str = ' '
@@ -224,6 +225,7 @@ class FloodNType:
 class FloodWatType:
     CEF : float = 0.0
     EF : float = 0.0
+    FLOOD : float = 0.0
 
 @dataclass
 # Data construct for mulch layer
@@ -287,6 +289,7 @@ class TransferType:
     WEATHER : WeatherType
     OUTPUT : OutputType
     WATER : WaterType
+    PLANT : PlantType
 
 # The variable SAVE_data contains all of the components to be
 # stored and retrieved.
@@ -298,9 +301,10 @@ MHARVEST = MHarveType()
 MGMT = MgmtType()
 WEATHER = WeatherType()
 OUTPUT = OutputType()
-WATER = WaterType
+WATER = WaterType ()
+PLANT = PlantType ()
 
-SAVE_data = TransferType(CONTROL, ISWITCH, WEATH, SOILPROP, MHARVEST, MGMT, WEATHER, OUTPUT, WATER)
+SAVE_data = TransferType(CONTROL, ISWITCH, WEATH, SOILPROP, MHARVEST, MGMT, WEATHER, OUTPUT, WATER,PLANT)
 
 def PUT_Char(ModuleName, VarName, Value):
     from WARNING import WARNING
@@ -389,6 +393,13 @@ def PUT_float(ModuleName, VarName, Value):
                     ERR = True
         case _:
             ERR = True
+    # match ModuleName:
+    #     case 'PLANT':
+    #         match VarName:
+    #             case 'CANHT': SAVE_data.PLANT.CANHT = Value
+    #             case _:
+    #                 ERR = True
+    #     case _:ERR = True
 
     if ERR:
         MSG = [None] * 2
@@ -435,7 +446,7 @@ def GET_Char(ModuleName, VarName, Value):
         WARNING(2, 'GET_Integer', MSG)
     return
 
-def GET_float(ModuleName, VarName):
+def GET_float(ModuleName, VarName,Value):
     match ModuleName:
         case 'PLANT':
             match VarName:

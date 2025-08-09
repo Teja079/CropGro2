@@ -51,6 +51,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #      &  PGDAY,SLPF,PGHR,PGNOON,PNLSHN,PNLSLN,QEREF,RABS(3),
 #      &  RADHR(TS),RADN,RCUTIC,REFHT,RHUMHR(TS),RLV(NL),RNITP
     ROWSPC : float = 0.0
+    SALB : float = 0.0
 #      &  RWU(NL),RWUH,SALB,SCVIR,SCVP,SHCAP(NL),SLAAD,SLWREF,
 #      &  SLWSH,SLWSHN,
 #      &  SLWSL,SLWSLN,SLWSLO,SNDN,SNUP,ST(NL),STn(NL),ST2(NL),STCOND(NL),
@@ -120,7 +121,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
     DYNAMIC = CONTROL.DYNAMIC
     FILEIO  = CONTROL.FILEIO
     LUNIO   = CONTROL.LUNIO
-    model   = CONTROL.model
+    model   = CONTROL.MODEL
 
     BD     = SOILPROP.BD
     DLAYR  = SOILPROP.DLAYR
@@ -161,15 +162,15 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
     WINDHR = WEATHER.WINDHR
 #
 # !     Retrieve plant module data for use here.
-    GET_float('PLANT', 'CANHT',  CANHT)
-    GET_float('PLANT', 'CANWH',  CANWH)
-    GET_float('PLANT', 'DXR57',  DXR57)
-    GET_float('PLANT', 'EXCESS', EXCESS)
-    GET_float('PLANT', 'NR5',    NR5)
-    GET_float('PLANT', 'PLTPOP', PLTPOP)
-    GET_float('PLANT', 'RNITP',  RNITP)
-    GET_float('PLANT', 'SLAAD',  SLAAD)
-    GET_float('PLANT', 'XPOD',   XPOD)
+    CANHT = GET_float('PLANT', 'CANHT',0.0)
+    CANWH = GET_float('PLANT', 'CANWH',0.0)
+    DXR57 = GET_float('PLANT', 'DXR57',0.0)
+    EXCESS = GET_float('PLANT', 'EXCESS',0.0)
+    NR5 = GET_float('PLANT', 'NR5',0)
+    PLTPOP = GET_float('PLANT', 'PLTPOP',0.0)
+    RNITP = GET_float('PLANT', 'RNITP',0.0)
+    SLAAD = GET_float('PLANT', 'SLAAD',0.0)
+    XPOD = GET_float('PLANT', 'XPOD',0.0)
 #
     YEAR, DOY = YR_DOY(YRDOY) #LPM 04DEC12 for OPSTEMP
 #========================================================================
@@ -194,14 +195,12 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
     if DYNAMIC == RC.RUNINIT:
         if MEEVP == 'Z':
             (AZIR, BETN, CEC, DLAYR2, DUL2, DULE, LFANGD, LL2, LLE, LWIDTH, NELAYR,
-             PALBW, PHTHRS10, RCUTIC, ROWSPC, SAT2, SCVIR, SCVP, SWEF, XSW, YSCOND, YSHCAP) = (
-             ETINP (BD, DLAYR, DUL, FILEIO, LL, LUNIO, NLAYR, SALBW, SAT))
+             PALBW, PHTHRS10, RCUTIC, ROWSPC, SAT2, SCVIR, SCVP, SWEF, XSW, YSCOND, YSHCAP) =ETINP (BD, DLAYR, DUL, FILEIO, LL, LUNIO, NLAYR, SALBW, SAT)
 
         if MEPHO == 'L' and CROP != 'FA':
             (AZIR, BETN, FNPGL, FNPGN, LFANGD, LMXREF, LNREF, NSLOPE, PALBW,
             QEREF, ROWSPC, SCVP, SLWREF, SLWSLO, TYPPGL, TYPPGN, XLMAXT, YLMAXT,
-            PHTHRS10, CCNEFF, CICAD, cmxsf,cqesf,pgpath) = (
-                PGINP(model,FILEIO, LUNIO, SALB))
+            PHTHRS10, CCNEFF, CICAD, cmxsf,cqesf,pgpath) = PGINP(model,FILEIO, LUNIO, SALB)
 
 
      #      CALL OpETPhot(CONTROL, ISWITCH,
@@ -326,10 +325,9 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #           Calculate hourly radiation absorption by canopy/soil.
 #
             (FRACSH, FRSHV, KDIRBL, KDRBLV, LAISH, LAISHV, LAISL, LAISLV,
-                PARSH, PARSUN, PCABSP, PCABSR, PCINTP, PCINTR, RABS) = (
-                RADABS (AZIR, AZZON(H), BETA(H), BETN, CANHT, CANWH, DAYTIM,
-                   FRDIFP(H), FRDIFR(H), H, LFANGD, MEEVP, MEPHO, PALB,
-                   PARHR(H), RADHR(H), ROWSPC, SALB, SCVIR, SCVP, XLAI))
+                PARSH, PARSUN, PCABSP, PCABSR, PCINTP, PCINTR, RABS) =RADABS (AZIR, AZZON[H], BETA[H], BETN, CANHT, CANWH, DAYTIM,
+                   FRDIFP[H], FRDIFR[H], H, LFANGD, MEEVP, MEPHO, PALB,
+                   PARHR[H], RADHR[H], ROWSPC, SALB, SCVIR, SCVP, XLAI)
 #
 # C         Calculate canopy ET/photosynthesis.
 #
