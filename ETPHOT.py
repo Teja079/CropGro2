@@ -9,15 +9,13 @@
 #  Called from: SPAM
 #  Calls:       ETIND,ETINP,PGINP,PGIND,RADABS,ETPHR,ROOTWU,SOIL05,SWFACS
 #========================================================================
-from ModuleDefs import PUT_float
-
-
 def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEATHER, XLAI):
     import numpy as np
     from math import log
-    from ModuleDefs import TS, GET_float, RunConstants as RC, NL
+    from ModuleDefs import TS, GET_float, RunConstants as RC, NL, PUT_float
     from DATES import YR_DOY
     from ROOTWU import ROOTWU
+    from ETPHR import ETPHR
 
 #       USE ModuleDefs     !Definitions of constructed variable types,
 #       USE ModuleData
@@ -31,17 +29,24 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #      &  TYPPGN*3,TYPPGL*3, CROP*2
 #       INTEGER DAS,DYNAMIC,H,I,NELAYR,NHOUR, DOY, YRDOY, YEAR,
 #      &  NLAYR,NR5, LUNIO, TSV2
+    TYPPGN = ' '
+    TYPPGL = ' '
     NR5 : int = 0
     YRDOY : int = 0
 # !         TSV2 = index for mid-day hour added by Bruce Kimball on 9JAN17
 #       LOGICAL DAYTIM
 #       REAL AGEFAC,AZIR,AZZON(TS),BETA(TS),BETN,   !AWEV1,
+    AZIR : float = -99.0
+    CEC : float = -99.0
 #      &  CANHT,CANWH,CEC,CEN,CLOUDS,CO2,CO2HR,DAYKP,DAYKR,DAYPAR,
 #      &  DAYRAD,DLAYR(NL),DLAYR2(NL),DULE,DYABSP,DYABSR,DYINTP,
 #      &  DYINTR,EDAY,EHR,EOP,EP,ES,ETNOON,FNPGN(4),FNPGL(4),
     FRACSH : float = 0.0
     FRSHV : float = 0.0
     KDIRBL  : float = 0.0
+    LFANGD = np.full(4,-99.0,dtype=float)
+    FNPGL = np.full(5,-99.0,dtype=float)
+    FNPGN = np.full(5,-99.0,dtype=float)
 #      &  FRDFPN,FRDFRN,FRDIFP(TS),FRDIFR(TS),FRSHAV,
 #      &  HS,HOLDHT,KDRBLV,HOLDLA,LAISH,LAISHV,LAISL,
 #      &  LAISLV,LFANGD(3),LFMXSH,LFMXSL,LL(NL),LL2(NL),LLE,LMXSHN,
@@ -51,7 +56,18 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #      &  PGDAY,SLPF,PGHR,PGNOON,PNLSHN,PNLSLN,QEREF,RABS(3),
 #      &  RADHR(TS),RADN,RCUTIC,REFHT,RHUMHR(TS),RLV(NL),RNITP
     ROWSPC : float = 0.0
-    SALB : float = 0.0
+    SALB : float = -99.0
+    SCVIR : float = -99.0
+    SCVP : float = -99.0
+    LMXREF : float = -99.0
+    LNREF : float = -99.0
+    LWIDTH : float = -99.0
+    NSLOPE : float = -99.0
+    QEREF : float = -99.0
+    RCUTIC : float = -99.0
+    SLWREF  : float = -99.0
+    SLWSLO : float = -99.0
+    TCAN =np.full(TS,-99.0,dtype=float)
 #      &  RWU(NL),RWUH,SALB,SCVIR,SCVP,SHCAP(NL),SLAAD,SLWREF,
 #      &  SLWSH,SLWSHN,
 #      &  SLWSL,SLWSLN,SLWSLO,SNDN,SNUP,ST(NL),STn(NL),ST2(NL),STCOND(NL),
@@ -60,11 +76,15 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #      &  TSHR(NL), ,TSURF(3,1),HOLDWH,WINDHR(TS),
     TSRF = np.zeros(4, dtype=float)
     TSRFN = np.zeros(4, dtype=float)
+    XLMAXT = np.zeros(7, dtype=float)
+    TSHRn = np.full(NL+1,-99.0,dtype=float)
 #      &  XLAI, TSHRn(NL),
 #      &  XLMAXT(6),XSW(NL,3),YLMAXT(6),YSCOND(NL,3),YSHCAP(NL,3),TMIN
 #       REAL SAT(NL),TGRO(TS),TGROAV,TGRODY,TAV,TAMP
 #       REAL PGXX,XPOD,CUMSTR,COLDSTR
+    CUMSTR : float
     TSHR = np.zeros(NL, dtype=float)
+    YLMAXT = np.full(7,-99.0,dtype=float)
     DXR57 : float = 0.0
     EXCESS : float = 0.0
     PLTPOP : float = 0.0
@@ -77,7 +97,12 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #       REAL PHTHRS10, PLTPOP
 #       REAL PORMIN, RWUMX
 #       REAL , SALBW, SRAD, DayRatio
+    PHTHRS10 : float
     PALBW : float = 0.0
+    RSSH : float = -99.0
+    RSSL : float = -99.0
+    RSSS : float = -99.0
+    RNET = np.full((4,2),(-99.0,-99.0),dtype=float)
 #
 #       REAL CONDSH, CONDSL, RA, RB(3), RSURF(3), Rnet(3,1)
 #       REAL Enoon, Tnoon, WINDN, TCANn, CSHnn, CSLnn,
@@ -85,6 +110,13 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #      &    TSRnit(3), CSHnit, CSLnit, LSHnit, LSLnit, SRFTEMP,
 #      &    G, LH, LHEAT(3,1), RSSH, RSSL, RSSS, SH, SHEAT(3,1),
 #      &     GN, LHN, LHEATN(3), RSSHN, RSSLN, RSSSN, SHN, SHEATN(3),
+    TSRnit = np.full(4,-99.0,dtype=float)
+    LHEATN = np.full(4,-99.0,dtype=float)
+    SHEATN = np.full(4,-99.0,dtype=float)
+    RNETN = np.full(4,-99.0,dtype=float)
+    LHEATT = np.full(4,-99.0,dtype=float)
+    SHEATT = np.full(4,-99.0,dtype=float)
+    RNETT = np.full(4,-99.0,dtype=float)
 #      &     GMT, LHT, LHEATT(3), RSSHT, RSSLT, RSSST, SHT, SHEATT(3),
 #      &     RNETN(3),RNETT(3),
 #      &     TAnn, TAnit, TGROnn, TGROnit,
@@ -97,6 +129,11 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #       CHARACTER(len=2) PGPATH
 #       character(len=8) model
 #       REAL CCNEFF, CICAD, CMXSF, CQESF
+    PGPATH = ' '
+    CMXSF : float =-99.0
+    CICAD : float =-99.0
+    CCNEFF : float =-99.0
+    CQESF  : float =-99.0
 #       REAL AGEQESL, AGEQESLN, CO2QESL, CO2QESLN, QEFFSL, QEFFSLN
 #
 #       REAL PSTRES1  !3/22/2011
@@ -121,7 +158,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
     DYNAMIC = CONTROL.DYNAMIC
     FILEIO  = CONTROL.FILEIO
     LUNIO   = CONTROL.LUNIO
-    model   = CONTROL.MODEL
+    MODEL   = CONTROL.MODEL
 
     BD     = SOILPROP.BD
     DLAYR  = SOILPROP.DLAYR
@@ -162,15 +199,15 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
     WINDHR = WEATHER.WINDHR
 #
 # !     Retrieve plant module data for use here.
-    CANHT = GET_float('PLANT', 'CANHT',0.0)
-    CANWH = GET_float('PLANT', 'CANWH',0.0)
-    DXR57 = GET_float('PLANT', 'DXR57',0.0)
-    EXCESS = GET_float('PLANT', 'EXCESS',0.0)
-    NR5 = GET_float('PLANT', 'NR5',0)
-    PLTPOP = GET_float('PLANT', 'PLTPOP',0.0)
-    RNITP = GET_float('PLANT', 'RNITP',0.0)
-    SLAAD = GET_float('PLANT', 'SLAAD',0.0)
-    XPOD = GET_float('PLANT', 'XPOD',0.0)
+    CANHT = GET_float('PLANT', 'CANHT')
+    CANWH = GET_float('PLANT', 'CANWH')
+    DXR57 = GET_float('PLANT', 'DXR57')
+    EXCESS = GET_float('PLANT', 'EXCESS')
+    NR5 = GET_float('PLANT', 'NR5')
+    PLTPOP = GET_float('PLANT', 'PLTPOP')
+    RNITP = GET_float('PLANT', 'RNITP')
+    SLAAD = GET_float('PLANT', 'SLAAD')
+    XPOD= GET_float('PLANT', 'XPOD')
 #
     YEAR, DOY = YR_DOY(YRDOY) #LPM 04DEC12 for OPSTEMP
 #========================================================================
@@ -195,12 +232,14 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
     if DYNAMIC == RC.RUNINIT:
         if MEEVP == 'Z':
             (AZIR, BETN, CEC, DLAYR2, DUL2, DULE, LFANGD, LL2, LLE, LWIDTH, NELAYR,
-             PALBW, PHTHRS10, RCUTIC, ROWSPC, SAT2, SCVIR, SCVP, SWEF, XSW, YSCOND, YSHCAP) =ETINP (BD, DLAYR, DUL, FILEIO, LL, LUNIO, NLAYR, SALBW, SAT)
+             PALBW, PHTHRS10, RCUTIC, ROWSPC, SAT2, SCVIR, SCVP, SWEF, XSW, YSCOND, YSHCAP) = (
+             ETINP (BD, DLAYR, DUL, FILEIO, LL, LUNIO, NLAYR, SALBW, SAT))
 
         if MEPHO == 'L' and CROP != 'FA':
             (AZIR, BETN, FNPGL, FNPGN, LFANGD, LMXREF, LNREF, NSLOPE, PALBW,
             QEREF, ROWSPC, SCVP, SLWREF, SLWSLO, TYPPGL, TYPPGN, XLMAXT, YLMAXT,
-            PHTHRS10, CCNEFF, CICAD, cmxsf,cqesf,pgpath) = PGINP(model,FILEIO, LUNIO, SALB)
+            PHTHRS10, CCNEFF, CICAD, CMXSF,CQESF,PGPATH) = (
+                PGINP(MODEL,FILEIO, LUNIO, SALB))
 
 
      #      CALL OpETPhot(CONTROL, ISWITCH,
@@ -325,9 +364,10 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #           Calculate hourly radiation absorption by canopy/soil.
 #
             (FRACSH, FRSHV, KDIRBL, KDRBLV, LAISH, LAISHV, LAISL, LAISLV,
-                PARSH, PARSUN, PCABSP, PCABSR, PCINTP, PCINTR, RABS) =RADABS (AZIR, AZZON[H], BETA[H], BETN, CANHT, CANWH, DAYTIM,
-                   FRDIFP[H], FRDIFR[H], H, LFANGD, MEEVP, MEPHO, PALB,
-                   PARHR[H], RADHR[H], ROWSPC, SALB, SCVIR, SCVP, XLAI)
+                PARSH, PARSUN, PCABSP, PCABSR, PCINTP, PCINTR, RABS) = (
+                RADABS (AZIR, AZZON(H), BETA(H), BETN, CANHT, CANWH, DAYTIM,
+                   FRDIFP(H), FRDIFR(H), H, LFANGD, MEEVP, MEPHO, PALB,
+                   PARHR(H), RADHR(H), ROWSPC, SALB, SCVIR, SCVP, XLAI))
 #
 # C         Calculate canopy ET/photosynthesis.
 #
@@ -363,15 +403,16 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
 #
             (AGEFAC, EHR, LFMXSH, LFMXSL, PCNLSH, PCNLSL, PGHR, SLWSH,
                 SLWSL, T0HR, TCAN[H], THR, TSHR, TSURF, CONDSH, CONDSL, RA,
-                RB, RSURF, Rnet, G, LH, LHEAT, SH, SHEAT, RBSH, RBSL, RBSS,
-                AGEQESL, CO2QESL, QEFFSL) = ETPHR( CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE,
+                RB, RSURF, RNET, G, LH, LHEAT, SH, SHEAT, RBSH, RBSL, RBSS,
+                AGEQESL, CO2QESL, QEFFSL) = (
+                ETPHR( CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE,
                 FNPGL, FNPGN, FRACSH, FRSHV, KDIRBL, LAISH, LAISHV, LAISL,
                 LAISLV, LLE,LMXREF, LNREF, LWIDTH, MEEVP, MEPHO, NLAYR,
                 NSLOPE, PARSH, PARSUN, QEREF, RABS, RCUTIC, REFHT,
                 RHUMHR[H], RNITP, RWUH, SHCAP, SLAAD, SLWREF,
                 SLWSLO, STCOND, SWE, TAIRHR[H], TA, TMIN, TYPPGL,
                 TYPPGN, WINDHR[H], XLAI, XLMAXT, YLMAXT, CCNEFF,
-                CICAD, CMXSF, CQESF, PGPATH)
+                CICAD, CMXSF, CQESF, PGPATH))
 
 #          Integrate instantaneous canopy photoynthesis (µmol CO2/m2/s)
 #          and evapotranspiration (mm/h) to get daily values (g CO2/m2/d
@@ -513,7 +554,7 @@ def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEA
         if MEEVP == 'Z':
         #Protections on DAYRAD for higher XLATs
             if XLAI > 0.0 and DAYRAD > 0.0:
-                DAYKR = -LOG((DAYRAD-DYINTR)/DAYRAD) / XLAI
+                DAYKR = -math.log((DAYRAD-DYINTR)/DAYRAD) / XLAI
             else:
                 DAYKR = 0.0
 
@@ -708,7 +749,8 @@ def ETINP(BD, DLAYR, DUL, FILEIO, LL, LUNIO, NLAYR,SALBW, SAT):
     TCAIR=0.025
     TCWATR=0.57
     ZERO=1.0E-6
-#       REAL PHTHRS10
+
+    PHTHRS10 : float = -99.0
 #       REAL, DIMENSION(NL) :: SAT, SAT2
 #
 # C     Read IBSNAT35.INP file.
@@ -931,8 +973,8 @@ def ETINP(BD, DLAYR, DUL, FILEIO, LL, LUNIO, NLAYR,SALBW, SAT):
     LFANGD[3] = 1.0 - LFANGD[2]
     LFANGD[2] = LFANGD[2] - LFANGD[1]
 
-    return (AZIR, BETN, CEC, DLAYR2, DUL2, DULE, LFANGD,LL2, LLE, LWIDTH, NELAYR, PALBW, PHTHRS10,RCUTIC, ROWSPC, SAT2, SCVIR, SCVP, SWEF, XSW,YSCOND, YSHCAP)
-#       END SUBROUTINE ETINP
+    return (AZIR, BETN, CEC, DLAYR2, DUL2, DULE, LFANGD,LL2, LLE, LWIDTH, NELAYR,
+            PALBW, PHTHRS10,RCUTIC, ROWSPC, SAT2, SCVIR, SCVP, SWEF, XSW,YSCOND, YSHCAP)
 
 #=======================================================================
 #  RADABS, Subroutine, N.B. Pickering
@@ -1587,20 +1629,27 @@ def ETIND(DUL2, RLV, SALBW, SW):
 #      &  SWE, TDAY,TEMPN,TSRF,TSRFN,XSW,YSCOND,YSHCAP)     !Output
 #
 # !     ------------------------------------------------------------------
-#       USE ModuleDefs     !Definitions of constructed variable types,
-#                          ! which contain control information, soil
-#                          ! parameters, hourly weather data.
-# !     NL, TS defined in ModuleDefs.for
+    import numpy as np
+    from  ModuleDefs import NL
+    from UTILS import TABEX
 #
-#       IMPLICIT NONE
-#       EXTERNAL SOIL10, TABEX
-#       SAVE
-#
-#       INTEGER I,J,NELAYR,NLAYR
-#       REAL CEN,DAYRAD,DLAYR2(NL),DULE,DYABSR,DYINTR,EDAY,ETNOON,FRDFRN,
+#       INTEGER I,J,
+    NLAYR : int
+    NELAYR : int
+    DLAYR2 : np.array(NL, dtype=float)
+    DULE : float
+    LLE : float
+    XC = np.zeros(4, dtype=float)
+    XSW = np.array((NL,4),dtype=float)
+    YHC = np.zeros(4, dtype=float)
+    YSHCAP = np.array((NL,4),dtype=float)
+    YTC = np.zeros(4, dtype=float)
+    YSCOND = np.array((NL,4),dtype=float)
+
+#       REAL CEN,DAYRAD,DYABSR,DYINTR,EDAY,ETNOON,FRDFRN,
 #      &  LLE,PCINRN,PCABRN,RADN,SHCAP(NL),ST2(NL),STCOND(NL),
 #      &  SW(NL),SW2(NL),SWE,EOP,TABEX,TDAY,TEMPN,TSRF(3),
-#      &  TSRFN(3),XC(3),XSW(NL,3),YHC(3),YTC(3),YSCOND(NL,3),
+#      &  TSRFN(3),,,,YSCOND(NL,3),
 #      &  YSHCAP(NL,3)
 #       REAL SALB, SALBW, SALBD
 #       REAL, DIMENSION(NL) :: DUL2, RLV, RLV2
@@ -1634,8 +1683,7 @@ def ETIND(DUL2, RLV, SALBW, SW):
         TSRFN[I] = 0.0
 
 #
-# C     Transform soil layers for SW and RLV.
-#
+#      Transform soil layers for SW and RLV.
     DUMMY, NLAYR, SW2 = SOIL10(SW)   # Output
     DUMMY, NLAYR, RLV2 = SOIL10(RLV) # Output
 
@@ -1671,7 +1719,10 @@ def ETIND(DUL2, RLV, SALBW, SW):
         #         SALB = SALBD - (SALBD-SALBW)/DUL2(1)*SW2(1)
         SALB = SALBD - (SALBD - SALBW) / DUL2[0] * SW2[0]
 
-    return (CEN, DAYRAD, DLAYR2, DULE, DYABSR, DYINTR, EDAY,EOP, ETNOON, FRDFRN, LLE, NELAYR, NLAYR, PCABRN,PCINRN, RADN, RLV2, SALB, SHCAP, ST2, STCOND,SW2, SWE, TDAY, TEMPN, TSRF, TSRFN, XSW, YSCOND, YSHCAP)
+    return (CEN, DAYRAD, DLAYR2, DULE, DYABSR, DYINTR, EDAY,EOP, ETNOON,
+            FRDFRN, LLE, NELAYR, NLAYR, PCABRN,PCINRN, RADN, RLV2, SALB,
+            SHCAP, ST2, STCOND,SW2, SWE, TDAY, TEMPN, TSRF, TSRFN,
+            XSW, YSCOND, YSHCAP)
 #       END SUBROUTINE ETIND
 #
 
@@ -1737,7 +1788,7 @@ def PGIND(NLAYR, PALBW, DUL2, SW):
 #       END SUBROUTINE PGIND
 
 
-def PGINP(model,FILEIO, LUNIO, SALBW):
+def PGINP(MODEL,FILEIO, LUNIO, SALBW):
     from ERROR import ERROR
     from READS import FIND, IGNORE
 #      &  AZIR, BETN, FNPGL, FNPGN, LFANGD, LMXREF,         !Output
@@ -1745,11 +1796,7 @@ def PGINP(model,FILEIO, LUNIO, SALBW):
 #      &  SCVP, SLWREF, SLWSLO, TYPPGL, TYPPGN,             !Output
 #      &  XLMAXT, YLMAXT, PHTHRS10,                         !Output
 #      &  ccneff, cicad, cmxsf, cqesf, pgpath)              !Output
-#
-#       IMPLICIT NONE
-#       EXTERNAL FIND, GETLUN, IGNORE, ERROR
-#       SAVE
-#
+
 #       CHARACTER BLANK*1,ERRKEY*6,FILEC*12,FILECC*92,FILEIO*30,
 #      &  PATHCR*80,SECTION*6,TYPPGL*3,TYPPGN*3
 #       CHARACTER*80 C80
@@ -1757,6 +1804,7 @@ def PGINP(model,FILEIO, LUNIO, SALBW):
 #       INTEGER ERRNUM,FOUND,I,LINC,LNUM,LUNCRP,LUNIO,PATHL
 #       INTEGER ISECT
 #
+    TYPPGL = ' '
     ERRKEY = 'PGINP '
     BLANK = ' '
     XLMAXT = np.zeros(6, dtype=float)
@@ -1932,7 +1980,7 @@ def PGINP(model,FILEIO, LUNIO, SALBW):
         ERROR(ERRKEY, ERRNUM, FILECC, LNUM)
 
 #
-    if model[0:5] == 'PRFRM':
+    if MODEL[0:5] == 'PRFRM':
         ISECT, C80=IGNORE(LUNCRP, LNUM)
         ISECT, C80=IGNORE(LUNCRP, LNUM)
         ISECT, C80=IGNORE(LUNCRP, LNUM)  # 12th line
@@ -1976,8 +2024,9 @@ def PGINP(model,FILEIO, LUNIO, SALBW):
     LFANGD[3] = 1.0 - LFANGD[2]
     LFANGD[2] = LFANGD[2] - LFANGD[1]
 
-    return (AZIR, BETN, FNPGL, FNPGN, LFANGD, LMXREF,LNREF, NSLOPE, PALBW, QEREF, ROWSPC,SCVP, SLWREF, SLWSLO, TYPPGL, TYPPGN,XLMAXT, YLMAXT, PHTHRS10,ccneff, cicad, cmxsf, cqesf, pgpath)
-#       END SUBROUTINE PGINP
+    return (AZIR, BETN, FNPGL, FNPGN, LFANGD, LMXREF,LNREF, NSLOPE, PALBW,
+            QEREF, ROWSPC,SCVP, SLWREF, SLWSLO, TYPPGL, TYPPGN,XLMAXT,
+            YLMAXT, PHTHRS10,CCNEFF, CICAD, CMXSF, CQESF, PGPATH)
 
 def INDEX(s, sub):
     pos = s.find(sub)
