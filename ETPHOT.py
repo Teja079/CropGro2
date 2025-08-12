@@ -1791,6 +1791,7 @@ def PGIND(NLAYR, PALBW, DUL2, SW):
 def PGINP(MODEL,FILEIO, LUNIO, SALBW):
     from ERROR import ERROR
     from READS import FIND, IGNORE
+    import fortranformat as ff
 #      &  AZIR, BETN, FNPGL, FNPGN, LFANGD, LMXREF,         !Output
 #      &  LNREF, NSLOPE, PALBW, QEREF, ROWSPC,              !Output
 #      &  SCVP, SLWREF, SLWSLO, TYPPGL, TYPPGN,             !Output
@@ -1864,15 +1865,19 @@ def PGINP(MODEL,FILEIO, LUNIO, SALBW):
     LNUM, FOUND= FIND(FILEIO, SECTION)
     if FOUND == 0:
         ERROR(SECTION, 42, FILEIO, LNUM)
-
-    PLTPOP, ROWSPC, AZIR = READ(LUNIO, '(24X,F6.0,12X,2F6.0)', IOSTAT=ERRNUM)
+    f100  = ff.FortranRecordReader('(24X,F6.0,12X,2F6.0)')
+    try:
+        PLTPOP, ROWSPC, AZIR = f100.read(LUNIO.readline())
+        ERRNUM = 0
+    except Exception:
+        ERRNUM = 1
     LNUM = LNUM + 1
     if ERRNUM != 0:
         ERROR(ERRKEY, ERRNUM, FILEIO, LNUM + 1)
 
     LUNIO.seek(0)
     SECTION = "*CULTI"
-    LNUM, FOUND=FIND(LUNIO, SECTION)
+    LNUM, FOUND=FIND(FILEIO, SECTION)
     LNUM = LNUM + LINC
     if FOUND == 0:
         ERROR(SECTION, 42, FILEIO, LNUM)
