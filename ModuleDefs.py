@@ -4,6 +4,8 @@ import numpy as np
 from dataclasses import dataclass, field
 from typing import List
 
+from CropGro2.plant import PLANT
+
 # Global constants
 NL : int = 20         # Maximum number of soil layers
 TS : int = 24         # Number of hourly time steps per day
@@ -68,8 +70,7 @@ class OutputType:
 class ControlType:
     RNMODE = ' '
     CROP = ' '
-    ENAME = ' ' * 2
-    MODEL = ' ' * 2
+    MODEL, ENAME = ' ' * 2
     FILEX = ' '
     FILEIO = ' '
     DSSATP: str = ' '
@@ -226,6 +227,7 @@ class FloodWatType:
     CEF : float = 0.0
     EF : float = 0.0
     FLOOD : float = 0.0
+    FRUNOFF : float = 0.0
 
 @dataclass
 # Data construct for mulch layer
@@ -277,6 +279,11 @@ class PlantType:
     iSTGDOY : int = 0
     iSTNAME : str = ' '
 
+@dataclass
+class PDLABETATYPE:
+    PDLA : float = 0.0
+    BETALS: float = 0.0
+
 # Data which can be transferred between modules
 @dataclass
 class TransferType:
@@ -289,7 +296,8 @@ class TransferType:
     WEATHER : WeatherType
     OUTPUT : OutputType
     WATER : WaterType
-    PLANT : PlantType
+    PDLABETA : PDLABETATYPE
+    PLANT : PlantType()
 
 # The variable SAVE_data contains all of the components to be
 # stored and retrieved.
@@ -301,10 +309,12 @@ MHARVEST = MHarveType()
 MGMT = MgmtType()
 WEATHER = WeatherType()
 OUTPUT = OutputType()
-WATER = WaterType ()
-PLANT = PlantType ()
+WATER = WaterType()
+PDLABETA = PDLABETATYPE()
+PLANT = PlantType()
 
-SAVE_data = TransferType(CONTROL, ISWITCH, WEATH, SOILPROP, MHARVEST, MGMT, WEATHER, OUTPUT, WATER,PLANT)
+SAVE_data = TransferType(CONTROL, ISWITCH, WEATH, SOILPROP, MHARVEST, MGMT, WEATHER,
+                         OUTPUT, WATER, PDLABETA, PLANT)
 
 def PUT_Char(ModuleName, VarName, Value):
     from WARNING import WARNING
@@ -391,15 +401,12 @@ def PUT_float(ModuleName, VarName, Value):
                 case 'PG' : SAVE_data.SPAM.PG = Value
                 case _:
                     ERR = True
+        case 'PDLABETA':
+            match VarName:
+                case 'PDLA': SAVE_data.PDLABETA.PDLA = Value
+                case 'BETA': SAVE_data.PDLABETA.BETALS = Value
         case _:
             ERR = True
-    # match ModuleName:
-    #     case 'PLANT':
-    #         match VarName:
-    #             case 'CANHT': SAVE_data.PLANT.CANHT = Value
-    #             case _:
-    #                 ERR = True
-    #     case _:ERR = True
 
     if ERR:
         MSG = [None] * 2
@@ -446,7 +453,8 @@ def GET_Char(ModuleName, VarName, Value):
         WARNING(2, 'GET_Integer', MSG)
     return
 
-def GET_float(ModuleName, VarName,Value):
+def GET_float(ModuleName, VarName):
+    Value : float = 0.0
     match ModuleName:
         case 'PLANT':
             match VarName:
@@ -487,6 +495,11 @@ def GET_float(ModuleName, VarName,Value):
                 case 'KC':     Value = SAVE_data.SPAM.KC
                 case 'PHSV':   Value = SAVE_data.SPAM.PHSV
                 case 'PHTV':   Value = SAVE_data.SPAM.PHTV
+                case _: ERR = True
+        case 'PDLABETA':
+            match VarName:
+                case 'PDLA': Value = SAVE_data.PDLABETA.PDLA
+                case 'BETA': Value = SAVE_data.PDLABETA.BETALS
                 case _: ERR = True
     return Value
 
