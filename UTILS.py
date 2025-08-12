@@ -298,6 +298,31 @@ class FrozenMeta(type):
             super().__setattr__(name, value)
         else:
             raise AttributeError(f"Cannot add new attribute '{name}' to {cls.__name__}")
+
+
+#=======================================================================
+  # TABEX, Function
+  # Look up utility routine
+#-----------------------------------------------------------------------
+def TABEX(VAL,ARG,DUMMY,K):
+
+    # INTEGER K,J
+    # REAL VAL(K),ARG(K),DUMMY
+
+    for J in range(2,K):
+        if DUMMY > ARG[J] :
+            continue
+        else:
+            J = K
+            value = (DUMMY-ARG[J-1])*(VAL[J]-VAL[J-1])/ \
+                    (ARG[J]-ARG[J-1])+VAL[J-1]
+    return value
+#=======================================================================
+
+
+
+
+
 # CROP = 'SR'
 # CROPD=GET_CROPD(CROP)
 # print(CROPD)
