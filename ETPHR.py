@@ -7,6 +7,9 @@
 #  Calls:       CANPET,CANOPG,HSOILT
 #=======================================================================
 #
+from CropGro2.ModuleDefs import GET_float
+
+
 def ETPHR(CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE, FNPGL,
           FNPGN, FRACSH, FRSHV, KDIRBL, LAISH, LAISHV, LAISL, LAISLV, LLE,
           LMXREF, LNREF, LWIDTH, MEEVP, MEPHO, NLAYR, NSLOPE, PARSH, PARSUN,
@@ -80,10 +83,8 @@ def ETPHR(CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE, FNPGL,
         ITER = 1
         TSUM = 0.0
 
-#        Loop until evapotranspiration and photosynthesis are stable.
-
+        #  Loop until evapotranspiration and photosynthesis are stable.
         if MEEVP == 'Z' and MEPHO == 'L':
-            #DO WHILE (REPEAT .AND. ITER .LE. 5)
             while True:
                 TCPREV = TCAN
                 (AGEFAC, CONDSH, CONDSL, CSHSTR, CSLSTR, LFMXSH, LFMXSL, PCNLSH,
@@ -93,14 +94,11 @@ def ETPHR(CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE, FNPGL,
                        TMIN, TSURF, TYPPGL, TYPPGN,XLMAXT, YLMAXT,CCNEFF,
                        CICAD,CMXSF,CQESF,PGPATH))
 
-
-
                 (EHR, RA, TCAN, THR, TSHR, TSURF, USTAR,RB, RSURF,
-                 RNET,G, LH, LHEAT, SH, SHEAT, G, LH, LHEAT, RSSH, RSSL, RSSS, SH,
-                 SHEAT,RBSL, RBSL, RBSS) = CANPET(CANHT, CEC, CEN, CLOUDS,
-                                                  CONDSH, CONDSL,DLAYR2, FRACSH, FRSHV, KDIRBL,
-                                                  LAISH,LAISHV, LAISL, LAISLV, LWIDTH, RABS,
-                                                  RCUTIC, REFHT, RHUMHR, STCOND, TAIRHR, WINDHR)
+                 RNET,G, LH, LHEAT, SH, SHEAT, RBSL, RBSL, RBSS) = (
+                    CANPET(CANHT, CEC, CEN, CLOUDS, CONDSH, CONDSL,DLAYR2, FRACSH,
+                           FRSHV, KDIRBL, LAISH,LAISHV, LAISL, LAISLV, LWIDTH, RABS,
+                           RCUTIC, REFHT, RHUMHR, STCOND, TAIRHR, WINDHR))
 
                 TSUM = TSUM + TCAN
                 if ITER > 5:
@@ -115,67 +113,61 @@ def ETPHR(CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE, FNPGL,
                     break
             T0HR = THR
 
-#           Water stress loop.  Evapotranspiration limited to by soil water
-#           supply by adjusting leaf conductances.  Photosynthesis recalulated.
-
-        if THR > RWUH:
-            CSLPRV = CONDSL
-            CONDSL = CONDSL * RWUH/THR
-            CSHPRV = CONDSH
-            CONDSH = CONDSH * RWUH/THR
-            REPEAT = True
-            ITER = 1
-            TSUM = 0.0
-            while True:
-            # DO WHILE (REPEAT .AND. ITER .LE. 5)
-                TCPREV = TCAN
-                TPREV = THR
-                (EHR, RA, TCAN, THR, TSHR, TSURF, USTAR, RB, RSURF,
-                 RNET,G, LH, LHEAT, SH, SHEAT, RBSH, RBSL, RBSS) = (
+            # Water stress loop.  Evapotranspiration limited to by soil water
+            # supply by adjusting leaf conductances.  Photosynthesis recalulated.
+            if THR > RWUH:
+                CSLPRV = CONDSL
+                CONDSL = CONDSL * RWUH/THR
+                CSHPRV = CONDSH
+                CONDSH = CONDSH * RWUH/THR
+                REPEAT = True
+                ITER = 1
+                TSUM = 0.0
+                while True:
+                    TCPREV = TCAN
+                    TPREV = THR
+                    (EHR, RA, TCAN, THR, TSHR, TSURF, USTAR, RB, RSURF,
+                     RNET,G, LH, LHEAT, SH, SHEAT, RBSH, RBSL, RBSS) = (
                     CANPET(CANHT, CEC, CEN, CLOUDS, CONDSH, CONDSL,DLAYR2, FRACSH,
-                       FRSHV, KDIRBL, LAISH,LAISHV, LAISL, LAISLV, LWIDTH, RABS,
-                       RCUTIC, REFHT, RHUMHR, STCOND, TAIRHR, WINDHR))
+                    FRSHV, KDIRBL, LAISH,LAISHV, LAISL, LAISLV, LWIDTH, RABS,
+                    RCUTIC, REFHT, RHUMHR, STCOND, TAIRHR, WINDHR))
+                    TSUM = TSUM + TCAN
+                    if ITER > 5:
+                       TCAN = TSUM / ITER
+                    else:
+                       TCAN = (TCAN+TCPREV) / 2.0
+                    ERRTC = abs(TCAN-TCPREV)
+                    ERRTR = abs(THR-RWUH)
+                    HOLD = CSLPRV+(CONDSL-CSLPRV)/(THR-TPREV)*(RWUH-TPREV)
+                    CSLPRV = CONDSL
+                    CONDSL = max(1.0/RCUTIC,HOLD)
+                    HOLD = CSHPRV+(CONDSH-CSHPRV)/(THR-TPREV)*(RWUH-TPREV)
+                    CSHPRV = CONDSH
+                    CONDSH = max(1.0/RCUTIC,HOLD)
+                    REPEAT = ERRTR > EMAXTR and ERRTC > EMAXTC
+                    ITER = ITER + 1
+                    if not (REPEAT and ITER <= 5):
+                        break
 
-                 TSUM = TSUM + TCAN
-                 if ITER > 5:
-                    TCAN = TSUM / ITER
-                 else:
-                    TCAN = (TCAN+TCPREV) / 2.0
+                CSLSTR = CONDSL
+                CSHSTR = CONDSH
+                STRESS = True
 
-                 ERRTC = abs(TCAN-TCPREV)
-                 ERRTR = abs(THR-RWUH)
-                 HOLD = CSLPRV+(CONDSL-CSLPRV)/(THR-TPREV)*(RWUH-TPREV)
-                 CSLPRV = CONDSL
-                 CONDSL = max(1.0/RCUTIC,HOLD)
-                 HOLD = CSHPRV+(CONDSH-CSHPRV)/(THR-TPREV)*(RWUH-TPREV)
-                 CSHPRV = CONDSH
-                 CONDSH = max(1.0/RCUTIC,HOLD)
-                 REPEAT = ERRTR > EMAXTR and ERRTC > EMAXTC
-                 ITER = ITER + 1
-                 if not (REPEAT and ITER <= 5):
-                     break
+                (AGEFAC, CONDSH, CONDSL, CSHSTR, CSLSTR, LFMXSH, LFMXSL,
+                PCNLSH, PCNLSL, PGHR, SLWREF, SLWSH, SLWSL, STRESS, AGEQESL, CO2QESL, QEFFSL) = (
+                CANOPG(CO2HR, FNPGL, FNPGN, LAISH, LAISL, LMXREF,LNREF,
+                       NSLOPE, PARSH, PARSUN, QEREF, RNITP, SLAAD, SLWSLO,
+                       TMIN, TSURF, TYPPGL, TYPPGN,XLMAXT, YLMAXT, CCNEFF,
+                       CICAD,CMXSF,CQESF,PGPATH))
 
-            CSLSTR = CONDSL
-            CSHSTR = CONDSH
-            STRESS = True
-
-            (AGEFAC, CONDSH, CONDSL, CSHSTR, CSLSTR, LFMXSH, LFMXSL,
-            PCNLSH, PCNLSL, PGHR, SLWREF, SLWSH, SLWSL, STRESS, AGEQESL, CO2QESL, QEFFSL) = (
-            CANOPG(CO2HR, FNPGL, FNPGN, LAISH, LAISL, LMXREF,LNREF,
-                   NSLOPE, PARSH, PARSUN, QEREF, RNITP, SLAAD, SLWSLO,
-                   TMIN, TSURF, TYPPGL, TYPPGN,XLMAXT, YLMAXT, CCNEFF,
-                   CICAD,CMXSF,CQESF,PGPATH))
-
-            STRESS = False
+                STRESS = False
         else:
             (AGEFAC, CONDSH, CONDSL, CSHSTR, CSLSTR, LFMXSH, LFMXSL, PCNLSH, PCNLSL,
              PGHR, SLWREF, SLWSH, SLWSL, STRESS, AGEQESL,CO2QESL,QEFFSL) = (
-                CANOPG(CO2HR, FNPGL, FNPGN, LAISH, LAISL, LMXREF,LNREF, NSLOPE,
+            CANOPG(CO2HR, FNPGL, FNPGN, LAISH, LAISL, LMXREF,LNREF, NSLOPE,
                    PARSH, PARSUN, QEREF, RNITP,SLAAD, SLWSLO, TMIN, TSURF,
                    TYPPGL, TYPPGN, XLMAXT, YLMAXT, CCNEFF,CICAD,CMXSF,CQESF,PGPATH))
-
-    #   Night hours or bare soil.
-    elif MEEVP == 'Z':
+    elif (MEEVP == 'Z'): #   Night hours or bare soil.
         CONDSH = 0.0
         CONDSL = 0.0
         REPEAT = True
@@ -184,11 +176,11 @@ def ETPHR(CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE, FNPGL,
         #DO WHILE (REPEAT .AND. ITER .LE. 5)
         while True:
             TCPREV = TCAN
-            (EHR, RA, TCAN, THR, TSHR, TSURF, USTAR, RB, RSURF, RNET,
-             G, LH, LHEAT, SH, SHEAT,RBSL, RBSL, RBSS) = (
-                CANPET(CANHT, CEC,CEN, CLOUDS, CONDSH, CONDSL,DLAYR2,FRACSH, FRSHV,
-                       KDIRBL, LAISH,LAISHV, LAISL, LAISLV, LWIDTH, RABS, RCUTIC,
-                       REFHT, RHUMHR, STCOND, TAIRHR, WINDHR))
+            (EHR, RA, TCAN, THR, TSHR, TSURF, USTAR, RB, RSURF,
+            RNET, G, LH, LHEAT, SH, SHEAT, RBSL, RBSL, RBSS) = (
+            CANPET(CANHT, CEC, CEN, CLOUDS, CONDSH, CONDSL, DLAYR2, FRACSH,
+            FRSHV, KDIRBL, LAISH, LAISHV, LAISL, LAISLV, LWIDTH, RABS,
+            RCUTIC, REFHT, RHUMHR, STCOND, TAIRHR, WINDHR))
 
             TSUM = TSUM + TCAN
             if ITER > 5:
@@ -202,6 +194,8 @@ def ETPHR(CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE, FNPGL,
             if not (REPEAT and ITER <= 5):
                 break
         T0HR = THR
+    else:
+        pass
 
     PGHR = max(PGHR,0.0)
     T0HR = max(T0HR,0.0)
@@ -210,10 +204,8 @@ def ETPHR(CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE, FNPGL,
 
 #      Update soil moisture in upper layer, soil and canopy-air temperature
 #      difference.
-
     if MEEVP == 'Z':
         TSHR = HSOILT(DLAYR2, NLAYR, SHCAP, STCOND, TA, TSURF(3,1))
-
         SWE = max(SWE-EHR,0.0)
         CEN = (DULE-SWE) / (DULE-LLE) * 100.0
 
@@ -232,23 +224,20 @@ def ETPHR(CANHT, CEC, CEN, CLOUDS, CO2HR, DAYTIM, DLAYR2, DULE, FNPGL,
 #  Called from: ETPHR
 #  Calls:       PGLFEQ,PGLEAF
 #=======================================================================
-#
 def CANOPG(CO2HR, FNPGL, FNPGN, LAISH, LAISL, LMXREF,LNREF, NSLOPE, PARSH, PARSUN,
            QEREF, RNITP,SLAAD, SLWSLO, TMIN, TSURF, TYPPGL, TYPPGN,XLMAXT, YLMAXT,
            CCNEFF,CICAD,CMXSF,CQESF,PGPATH):
-
-    #   IMPLICIT  NONE
-    #   EXTERNAL PGLFEQ, PGLEAF
-    #   SAVE
     #
     #   CHARACTER TYPPGN*3,TYPPGL*3
     #   INTEGER I
-    #   LOGICAL STRESS
+    STRESS : bool = False
     #   REAL AGEFAC,AGMXSH,AGMXSL,CO2HR,CONDSH,CONDSL,CONSUM,CONSUN,
     #  &  LAISH,LAISL,LMXREF,LFMXSH,LFMXSL,LNREF,NSLOPE,PARSH,
     #  &  PARSUN(3),PARSL,PGHR,PGSUM,PGSUN,PGSH,PGSL,QEREF,QEFFSH,
     #  &  QEFFSL,RNITP,SLAAD,TEMPSH,TEMPSL,TSURF(3,1),FNPGN(4),
-    #  &  FNPGL(4),XLMAXT(6),XLAI,YLMAXT(6),CSLSTR,CSHSTR,SLWSL,
+    #  &  FNPGL(4),XLMAXT(6),XLAI,YLMAXT(6),SLWSL,
+    CSLSTR : float = -99.0
+    CSHSTR : float = -99.0
     #  &  SLWSH,PCNLSL,PCNLSH,SLWSLO,SLWREF,TMIN
     #
     #   CHARACTER PGPATH*2
@@ -256,6 +245,8 @@ def CANOPG(CO2HR, FNPGL, FNPGN, LAISH, LAISL, LMXREF,LNREF, NSLOPE, PARSH, PARSU
     #   REAL AGEQESH, AGEQESL, CO2QESH, CO2QESL
     #
     # Initialize.
+
+    SLWREF : float = -99.0
 
     TEMPSL = TSURF[1,1]
     TEMPSH = TSURF[2,1]
@@ -289,7 +280,7 @@ def CANOPG(CO2HR, FNPGL, FNPGN, LAISH, LAISL, LMXREF,LNREF, NSLOPE, PARSH, PARSU
 #
     PGSUM = 0.0
     CONSUM = 0.0
-    for I in range (1,4)
+    for I in range (1,5):
         CONSUN, PGSUN = PGLEAF(CO2HR, LFMXSL, PARSUN(I), QEFFSL, TEMPSL, CCNEFF,CICAD,PGPATH)
         if I == 2:
             PGSUM = PGSUM + PGSUN*1.6
@@ -345,10 +336,9 @@ def PGLFEQ( CO2HR, FNPGL, FNPGN, LMXREF, LNREF, QEREF, RNITP, SLW, SLWREF,
             TEMPHR, TMIN, TYPPGL, TYPPGN, XLMAXT, YLMAXT,CCNEFF, CICAD, CMXSF,
             CQESF, PGPATH):
     import math
+    from DSSATUtils import curv
+    from UTILS import TABEX
 
-#       EXTERNAL TABEX, CURV
-#       SAVE
-#
 #       CHARACTER TYPPGN*3,TYPPGL*3
 #       REAL AGEMXL,AGEQE,CICA,CINT,CO2HR,CO2MAX,CO2QE,
 #      &  CURV,FNPGN(4),FNPGL(4),GAMST,LFMAX,LNREF,LMXREF,LXREF,
@@ -358,10 +348,13 @@ def PGLFEQ( CO2HR, FNPGL, FNPGN, LMXREF, LNREF, QEREF, RNITP, SLW, SLWREF,
 #       CHARACTER PGPATH*2
 #       REAL CCNEFF, CICAD, CMXSF, CQESF
 #
-    O2=210000.0
-    RGAS=8.314
+    O2 = 210000.0
+    RGAS = 8.314
+
+    PDLA : float = 0.0
+    BETALS: float = 0.0
 #
-#       REAL BETALS,PDLA,BETAMX
+#       REAL BETAMX
 #
 #      Initialization.  Convert LMXREF from mgCO2/m2/s to µmol/m2/s.
 #
@@ -375,7 +368,7 @@ def PGLFEQ( CO2HR, FNPGL, FNPGN, LMXREF, LNREF, QEREF, RNITP, SLW, SLWREF,
 #   and the compensation point in the absence of dark respiration (GAMST).
 #       !CHP 4/15/03 Prevent overflow
     if RT > 1000.:
-        if pgpath == "C4" or pgpath == 'c4':
+        if PGPATH == "C4" or PGPATH == 'c4':
             tau = math.exp(-3.949 + 28990.0/RT)*CCNEFF
         else:
             TAU = math.exp(-3.949 + 28990.0/RT)
@@ -420,14 +413,14 @@ def PGLFEQ( CO2HR, FNPGL, FNPGN, LMXREF, LNREF, QEREF, RNITP, SLW, SLWREF,
 #      after Mike Bell, peanut.  ONLY the first two numbers are used.
 #      KJB, 9/7/94.  OKAY TO USE NIGHT MINIMUM CANOPY TEMPERATURE LATER
 #
-        CHILL = CURV(TYPPGL,FNPGL(1),FNPGL(2),FNPGL(3),FNPGL(4),TMIN)
+        CHILL = curv(TYPPGL,FNPGL(1),FNPGL(2),FNPGL(3),FNPGL(4),TMIN)
 #
 #      Nitrogen effects on LMXREF.  Photosynthesis is affected both by
 #      plant nutrition and age.  Quadratic from (1) to (2).  AGEMXL scaled
 #      to 1.0 at LNREF.
 #
-        AGEMXL = CURV(TYPPGN,FNPGN(1),FNPGN(2),FNPGN(3),FNPGN(4),RNITP) / \
-                 CURV(TYPPGN,FNPGN(1),FNPGN(2),FNPGN(3),FNPGN(4),LNREF)
+        AGEMXL = curv(TYPPGN,FNPGN(1),FNPGN(2),FNPGN(3),FNPGN(4),RNITP) / \
+                 curv(TYPPGN,FNPGN(1),FNPGN(2),FNPGN(3),FNPGN(4),LNREF)
 #
 #      EFFECTS ON QUANTUM EFFICIENCY (QEFF).
 #
@@ -456,8 +449,8 @@ def PGLFEQ( CO2HR, FNPGL, FNPGN, LMXREF, LNREF, QEREF, RNITP, SLW, SLWREF,
         AGEQE = min(max(AGEQE,0.0),1.0)
 #
 #     25 Apr 2011 KJB,PDA,MPS added code for beta function: PDLA effects on lfmax and QE
-        GET('PDLABETA','BETA',BETALS)
-        GET('PDLABETA','PDLA',PDLA)
+        GET_float('PDLABETA','BETA',BETALS)
+        GET_float('PDLABETA','PDLA',PDLA)
         BETAMX = (1.0-PDLA/100.)**BETALS
 #
 #      Calculate QEFF and LFMAX at ambient conditions.
@@ -526,7 +519,6 @@ def PGLEAF(CO2HR, LFMAX, PARLF, QEFF, TEMPHR,CCNEFF, CICAD, PGPATH):
         TAU = 1E10
         GAMST = 0.0
 
-
     if PGPATH == 'C4' or PGPATH == 'c4':
         CICA = CICAD
     else:
@@ -556,21 +548,16 @@ def CANPET(CANHT, CEC, CEN, CLOUDS, CONDSH, CONDSL, DLAYR2, FRACSH, FRSHV, KDIRB
            TAIRHR, WINDHR):
     import numpy as np
     from HMET import VPSAT
+    from ModuleDefs import NL
 
-# !     ------------------------------------------------------------------
-#       USE ModuleDefs     !Definitions of constructed variable types,
-#                          ! which contain control information, soil
-#                          ! parameters, hourly weather data.
-#       IMPLICIT NONE
-#       EXTERNAL ETRES, RADB, ETSOLV, VPSAT, VPSLOP
-#       SAVE
-#
 #       INTEGER I
 #       REAL CANHT,CONDSH,CONDSL,CEC,CEN,DLAYR1,DLAYR2(NL),
 #      &  EAIRHR,ECAN,ESATHR,EHR,ETHR,FRACSH,FRSHV,G,KDIRBL,LAISH,
 #      &  LAISL,LH,LHEAT(3,1),LHVAP,LWIDTH,PATM,PSYCON,RA,REFHT,RHUMHR,
 #      &  RCUTIC,RL(3,3),RABS(3),RNTOT,RNET(3,1),RS(3,3),SHAIR,STCND1,
-#      &  STCOND(NL),TAIRHR,,THR,TSHR1,TSHR(NL),TSURF(3,1),VHCAIR,
+#      &  STCOND(NL),TAIRHR,,THR,TSHR1,TSURF(3,1),VHCAIR,
+    TSHR = np.full(NL, 0.0, dtype=float)
+    RNET = np.full((4, 2),(0.0,0.0), dtype=float)
 #      &  VPSAT,WINDHR,CLOUDS,DAIR,DAIRD,DVAPOR,Q,SH,SHEAT(3,1),
 #      &  SHAIRD,TK,MWATER,RGAS,MAIR,LAISHV,LAISLV,RADBK(3),
 #      &  USTAR,XLAI,ZERO
@@ -581,22 +568,20 @@ def CANPET(CANHT, CEC, CEN, CLOUDS, CONDSH, CONDSL, DLAYR2, FRACSH, FRSHV, KDIRB
 # C         RB, RSURF RSSH RSSL RSSS added DEC2014 by Bruce Kimball
 # C         RBSH,RBSL,RBSS added by BAK on 10DEC15
 #
-    RGAS=8.314
-    MWATER=0.01802
-    MAIR=0.02897
-    PATM=101300.0
-    SHAIRD=1005.0
-    ZERO=1.0E-6
+    RGAS = 8.314
+    MWATER = 0.01802
+    MAIR = 0.02897
+    PATM = 101300.0
+    SHAIRD = 1005.0
+    ZERO = 1.0E-6
 #
-# C     Initialize.
-#
+#      Initialize.
     XLAI = LAISH + LAISL
     STCND1 = STCOND[1]
     TSHR1 = TSHR[1]
     DLAYR1 = DLAYR2[1] / 100.0
 
 #      Calculate air/water properties as a function of temperature.
-
     ESATHR = VPSAT(TAIRHR)                              # Pa
     EAIRHR = ESATHR * RHUMHR / 100.0                    # Pa
     TK = TAIRHR + 273.0                                 # K
@@ -665,27 +650,21 @@ def ETRES(CANHT, CEC, CEN, CONDSH, CONDSL, FRACSH, FRSHV,KDIRBL, LAISH,
           LAISL, LWIDTH, RCUTIC, REFHT,TAIRHR, TCAN, WINDHR):
     import math
     import numpy as np
-#
-#       IMPLICIT NONE
-#       EXTERNAL RESBLR
-#       SAVE
-#
 #       INTEGER I,J
 #       REAL CANHT,CEC,CEN,CONDSH,CONDSL,FRACSH,FRSHV,KDIRBL,
 #      &  LAISH,LAISL,LWIDTH,RCUTIC,RA,RB(3),REFHT,
-#      &  RMAX,RSSH,RSSL,RSSS,RSURF(3),TAIRHR,TCAN,
+#      &  RMAX,RSSH,RSSL,RSSS,TAIRHR,TCAN,
 #      &  WINDHR,XLAI,USTAR
     RS = np.zeros((3,3), dtype=float)
     RL = np.zeros((3,3), dtype=float)
+    RSURF = np.zeros(4, dtype=float)
 
     RMAX=1.0E4
-#
-#      Initialization.
 
+#      Initialization.
     XLAI = LAISH + LAISL
 
 #      Calculate canopy and soil boundary layer resistances.
-#
     (RA, RB, USTAR) = RESBLR(CANHT, FRACSH, FRSHV, KDIRBL, LAISH, LAISL,
                              LWIDTH, REFHT, TAIRHR, TCAN, WINDHR)
 
@@ -753,17 +732,20 @@ def ETRES(CANHT, CEC, CEN, CONDSH, CONDSL, FRACSH, FRSHV,KDIRBL, LAISH,
 #=======================================================================
 def RESBLR(CANHT, FRACSH, FRSHV, KDIRBL, LAISH, LAISL, LWIDTH, REFHT,
            TAIRHR, TCAN, WINDHR):
+    import numpy as np
     import math
 #       REAL CANHT,D,ETAK,ETAKMX,ETAW,ETAWMX,FRSHV,FRACSH,H,KDIRBL,
 #      &  KH,LAISH,LAISL,ZMD,HMD,K1,K2,LWIDTH,PSIM,PSIH,RA,
-#      &  RBLF,RBSH,RBSL,RB(3),REFHT,RMAX,TAIRHR,TCAN,TKAIR,
+#      &  RBLF,RBSH,RBSL,REFHT,RMAX,TAIRHR,TCAN,TKAIR,
 #      &  WINDHR,WINDSP,XLAI,Z0H,Z0M,ZS0H,ZS0M,LHZ0M,LZZ0H,LZZ0M,DT,
 #      &  MO,USTAR,X,A,B,PI,RATIO,WINDH,RBSS,ZERO
-    ETAKMX=2.0
-    ETAWMX=3.0
-    PI=3.14159
-    RMAX=1.0E4
-    ZERO=1.0E-6
+    RB = np.zeros(4, dtype=float)
+
+    ETAKMX = 2.0
+    ETAWMX = 3.0
+    PI = 3.14159
+    RMAX = 1.0E4
+    ZERO = 1.0E-6
 
 # C     Initialization and calculation of zero plane displacement height and
 # C     canopy surface roughness (Brutsaert, 1982).
@@ -794,8 +776,7 @@ def RESBLR(CANHT, FRACSH, FRSHV, KDIRBL, LAISH, LAISL, LWIDTH, REFHT,
     ETAK = ETAKMX
     ETAW = ETAWMX
 
-# C     Stability correction for RA (Choudhury et al, 1986).
-
+#   Stability correction for RA (Choudhury et al, 1986).
     MO = -0.4*9.81*DT*ZMD / (RA*TKAIR*USTAR**3)
     if abs(MO) <= ZERO:                         # neutral
         PSIM = 0.0
@@ -814,13 +795,11 @@ def RESBLR(CANHT, FRACSH, FRSHV, KDIRBL, LAISH, LAISL, LWIDTH, REFHT,
         PSIM = min(PSIM,LZZ0M-0.1)
         PSIH = RATIO * PSIM
 
-# C     Aerodynamic resistance.
-
+#       Aerodynamic resistance.
         USTAR = 0.4 * WINDSP / (LZZ0M-PSIM)
         RA = (LZZ0H-PSIH) / (0.4 * USTAR)                   # s/m
 
-# C     Canopy calculations.
-#
+#      Canopy calculations.
     if XLAI > 0.0:
 
 #       Calculate windspeed at the top of the canopy.
@@ -830,7 +809,6 @@ def RESBLR(CANHT, FRACSH, FRSHV, KDIRBL, LAISH, LAISL, LWIDTH, REFHT,
 
 #       Calculate leaf boundary layer resistances (extension of Choudhury
 #       and Montieth, 1988).
-
         RBLF = ETAW * math.sqrt(LWIDTH/WINDH) / (2.0*0.01*XLAI*(1.0-math.exp(-ETAW/2.0)))        # s/m
         K1 = ETAW/2.0+KDIRBL*XLAI/FRACSH
         RBSL = math.sqrt(LWIDTH/WINDH) * K1 / (0.01*XLAI*(1.0-math.exp(-K1)))
@@ -842,22 +820,18 @@ def RESBLR(CANHT, FRACSH, FRSHV, KDIRBL, LAISH, LAISL, LWIDTH, REFHT,
 
 #       Calculate soil aerodynamic resistance (extension of Choudhury
 #       and Montieth, 1988).
-
         KH = 0.16 * WINDSP * HMD / LZZ0M                           # m/s
         K2 = math.exp(-ETAK*ZS0H/H) - math.exp(-ETAK*(D+Z0H)/H)
         RBSS = H*math.exp(ETAK)*K2 / (ETAK*KH)                          # s/m
         RBSS = FRSHV * RBSS
 
     # Bare soil.
-
     else:
         RBSL = RMAX
         RBSH = RMAX
         RBSS = 0.0
 
-
 #     Set boundary layer array.
-
         RB[1] = RBSL
         RB[2] = RBSH
         RB[3] = RBSS
@@ -880,10 +854,13 @@ def ETSOLV(DLAYR1, EAIRHR, PSYCON, RL, RNET, RS, STCND1,TAIRHR, TSHR1,
 
      #  REAL STCND1,DLAYR1,DZ1,EAIRHR,ECAN,G,PSYCON,RBLCN,SH,LH,
      # &  TAIRHR,TCAN,TSHR1,VHCAIR,VP,VPSLOP,VSP,HOLD
-     #  REAL IRL(3,3),IRS(3,3),LHEAT(3,1),ONE(1,3),
+     #  REAL IRL(3,3),IRS(3,3),ONE(1,3),
      # &  RL(3,3),RNET(3,1),RS(3,3),RSL(3,3),RSLRN(3,1),
-     # &  SHEAT(3,1),TSURF(3,1),VHAIRS(3,3),VPD(3,1),
+     # &  VHAIRS(3,3),VPD(3,1),
      # &  VPIRLD(3,1),VSPIRL(3,3),XMAT(3,3)
+    LHEAT = np.zeros((4, 2), dtype=float)
+    SHEAT = np.zeros((4, 2), dtype=float)
+    TSURF = np.zeros((4, 2), dtype=float)
     YMAT = np.zeros((3, 1), dtype=float)
     VPIRLD = np.zeros((3, 1), dtype=float)
     CMAT = np.zeros((3, 1), dtype=float)
@@ -925,7 +902,6 @@ def ETSOLV(DLAYR1, EAIRHR, PSYCON, RL, RNET, RS, STCND1,TAIRHR, TSHR1,
     VPIRLD[3,1] = HOLD
 
     #  Solve for TDIFF matrix.
-
     MATPRO(RSL,RNET,3,3,1,RSLRN)
     MATADD(VHAIRS,VSPIRL,3,3,'+',XMAT) # Check this--XMAT used?
     MATADD(RSLRN,CMAT,3,1,'-',TDIFF)
@@ -933,7 +909,6 @@ def ETSOLV(DLAYR1, EAIRHR, PSYCON, RL, RNET, RS, STCND1,TAIRHR, TSHR1,
 
     # Solve remaining 6 equations for latent and sensible heat fluxes and
     # sum up latent and sensible heats for 3 zones.
-
     MATPRO(VHAIRS,TDIFF,3,3,1,SHEAT)
     MATPRO(VSPIRL,TDIFF,3,3,1,YMAT)
     MATADD(YMAT,VPIRLD,3,1,'+',LHEAT)
@@ -962,8 +937,7 @@ def ETSOLV(DLAYR1, EAIRHR, PSYCON, RL, RNET, RS, STCND1,TAIRHR, TSHR1,
 def GAUSSJ(AMAT,N):
     import numpy as np
     from WARNING import WARNING
-#
-#       INTEGER NMAX
+
     NMAX = 10
 #       INTEGER I,ICOL,IIROW,J,K,L,LL,N
 #       REAL AMAT(N,N),,BIG,DUM,PIVINV,ZERO
@@ -975,9 +949,8 @@ def GAUSSJ(AMAT,N):
 
     ZERO = 1.0E-6
     MSG = ['']
-#
-#      Initialize.
 
+#      Initialize.
     for J in range (1,N+1):
         for K in range (1,N+1):
             AINV[J,K] = AMAT[J,K]
@@ -985,12 +958,11 @@ def GAUSSJ(AMAT,N):
     for J in range(1,N+1):
         IPIV[J] = 0
 
-# C     Main loop over columns to be reduced.
+#   Main loop over columns to be reduced.
     for I in range(1,N):
         BIG = 0.0
 
 #  Search for pivot (or largest) element and store position.
-
     for J in range(1,N+1):
         if IPIV[J] != 1:
             for K in range (1,N+1):
@@ -1029,8 +1001,7 @@ def GAUSSJ(AMAT,N):
     for L in range (1,N+1):
         AINV[ICOL,L] = AINV[ICOL,L]*PIVINV
 
-# C       Reduce pivot rows except for pivot one.
-
+#      Reduce pivot rows except for pivot one.
     for LL in range (1,N):
         if LL != ICOL:
             DUM = AINV[LL,ICOL]
@@ -1087,8 +1058,7 @@ def MATADD(AMAT,BMAT,NROW,NCOL,OPERND):
 
 def MATCON(CONST,BMAT,NROW,NCOL,OPERND):
     import numpy as np
-#       SAVE
-#
+
 #       CHARACTER*1 OPERND
 #       INTEGER I,J,NROW,NCOL
 #       REAL CONST,BMAT(NROW,NCOL),CMAT(NROW,NCOL)
@@ -1115,10 +1085,7 @@ def MATCON(CONST,BMAT,NROW,NCOL,OPERND):
 
 def MATPRO(AMAT,BMAT,NROWA,NCOM,NCOLB):
     import numpy as np
-#       IMPLICIT NONE
-#
-#       SAVE
-#
+
 #       INTEGER I,J,K,NROWA,NCOM,NCOLB
 #       REAL AMAT(NROWA,NCOM),BMAT(NCOM,NCOLB),,SUM
 
@@ -1152,16 +1119,16 @@ def MATPRO(AMAT,BMAT,NROWA,NCOM,NCOLB):
 def RADB(CLOUDS, EAIRHR, FRSHV, LAISHV,LAISLV, TAIRHR, TCAN):
     import numpy as np
 #
-#       SAVE
 #       REAL CLOUDS,DELT,EMISA,EMISA0,EMISL,EMISS,EMISS0,FRSHV,
 #      &  LAISHV,LAISLV,RADBK(3),EAIRHR,SBZCON,TAIRHR,TKAIR,TK4SKY,
 #      &  TSKY,XLAI,EMISAV,RBKLF,RBACK,TCAN,TK4CAN,ZERO
     RADBK = np.zeros(3, dtype=float)
-    SBZCON=5.675E-8
-    DELT=11.0
-    EMISL=0.97
-    EMISS0=0.9
-    ZERO=1.0E-6
+
+    SBZCON = 5.675E-8
+    DELT = 11.0
+    EMISL = 0.97
+    EMISS0 = 0.9
+    ZERO = 1.0E-6
 
     # Initialize.  Apparent atmospheric emissivity from Brutsaert (1982)
     # and Monteith and Undsworth (1990)
@@ -1179,7 +1146,6 @@ def RADB(CLOUDS, EAIRHR, FRSHV, LAISHV,LAISLV, TAIRHR, TCAN):
     # assumed to have view factor of FRSHV with TEMPSH and (1.-FRSHV)
     # with sky temperature.  Energy loss from leaf is porportionally
     # weighted according to leaf area index.  NEED VIEW FACTOR FOR LEAVES!
-
     EMISAV = FRSHV*EMISL + (1.0-FRSHV)*EMISS
     RBACK =  EMISAV * SBZCON * (TK4CAN-TK4SKY)
 
@@ -1207,14 +1173,11 @@ def HSOILT(DLAYR2, NLAYR, SHCAP, STCOND, TA, TEMPSS):
     import numpy as np
     from ModuleDefs import TS, NL
 # !     ------------------------------------------------------------------
-#       USE ModuleDefs     !Definitions of constructed variable types,
-#                          ! which contain control information, soil
-#                          ! parameters, hourly weather data.
-#       SAVE
-#
+
 #       INTEGER I,NLAYR
 #       REAL DT,DZ,DLAYR2(NL),INFLOW,OUTFLO,SCOND,STCOND(NL),SHCAP(NL),
-#      &  TA,TINCR,TSHR(NL),TEMPSS,
+#      &  TA,TINCR,,TEMPSS,
+    TSHR =  np.zeros(NL, dtype=float)
     VHCAP =np.zeros(NL, dtype=float)
     TINCR=24.0/TS*3600.0
 #
@@ -1249,7 +1212,6 @@ def HSOILT(DLAYR2, NLAYR, SHCAP, STCOND, TA, TEMPSS):
         VHCAP[I] = VHCAP[I] + (INFLOW-OUTFLO)*TINCR
 
         # Update soil temperatures.
-
         for I in range(1,NLAYR+1):
             TSHR[I] = VHCAP[I] / (DLAYR2[I]/100.0*SHCAP[I])
 
