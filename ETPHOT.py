@@ -9,6 +9,9 @@
 #  Called from: SPAM
 #  Calls:       ETIND,ETINP,PGINP,PGIND,RADABS,ETPHR,ROOTWU,SOIL05,SWFACS
 #========================================================================
+from UTILS import GET_CROPD
+
+
 def ETPHOT (CONTROL, ISWITCH, PORMIN, PSTRES1, RLV, RWUMX, SOILPROP, ST, SW, WEATHER, XLAI):
     import numpy as np
     from math import log
@@ -988,7 +991,9 @@ from ERROR import ERROR
 from READS import FIND, IGNORE
 import numpy as np
 from WARNING import WARNING
-from ModuleDefs import NL
+from ModuleDefs import NL, GET_CONTROL, GET_OUTPUT, GET_Char
+
+
 def RADABS(AZIR, AZZON, BETA, BETN, CANHT, CANWH, DAYTIM, FRDIFP, FRDIFR, H, LFANGD, MEEVP, MEPHO, PALB, PARHR, RADHR, ROWSPC, SALB, SCVIR, SCVP, XLAI):
 
 #       IMPLICIT NONE
@@ -1878,6 +1883,7 @@ def PGINP(MODEL,FILEIO, LUNIO, SALBW):
     LUNIO.seek(0)
     SECTION = "*CULTI"
     LNUM, FOUND=FIND(FILEIO, SECTION)
+    LINC, FOUND=FIND(FILEIO, SECTION)
     LNUM = LNUM + LINC
     if FOUND == 0:
         ERROR(SECTION, 42, FILEIO, LNUM)
@@ -1895,7 +1901,7 @@ def PGINP(MODEL,FILEIO, LUNIO, SALBW):
 
 #
 # C     Read species file.
-    GETLUN('FILEC', LUNCRP)
+    LUNCRP=GET_CROPD('FILEC')
     try:
         LUNCRP = open(FILECC, 'r')
     except OSError as e:
